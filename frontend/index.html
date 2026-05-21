@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coaching Institute Audit Agent</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --primary: #6c63ff;
+      --primary-dark: #574fd6;
+      --accent: #00d4aa;
+      --danger: #ff6b6b;
+      --warn: #ffd93d;
+      --text: #e8eaf6;
+      --text-muted: #8b93c4;
+      --text-dim: #555e8a;
+      --success: #4caf82;
+      --orange: #ff9f43;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .logo h1 {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Input Section ────────────────────────────────────── */
+    .input-section {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      flex-shrink: 0;
+    }
+
+    .input-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .url-input {
+      flex: 1;
+      min-width: 260px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 16px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .url-input:focus {
+      border-color: var(--primary);
+    }
+
+    .url-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .btn {
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(108, 99, 255, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: #0f1117;
+      font-weight: 700;
+    }
+
+    .btn-orange {
+      background: var(--orange);
+      color: #0f1117;
+      font-weight: 700;
+    }
+
+    /* ── Progress ─────────────────────────────────────────── */
+    .progress-section {
+      display: none;
+      padding: 14px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .progress-section.visible {
+      display: block;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .progress-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .progress-status {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .progress-bar-outer {
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 99px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    .steps-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .step-pill {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      transition: all 0.3s;
+    }
+
+    .step-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0, 212, 170, 0.1);
+    }
+
+    .step-pill.done {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(76, 175, 130, 0.1);
+    }
+
+    /* ── Tab Bar ──────────────────────────────────────────── */
+    .tab-bar {
+      display: none;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+
+    .tab-bar.visible {
+      display: flex;
+    }
+
+    .tab {
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      color: var(--text-muted);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab .tab-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+
+    .tab.active .tab-badge {
+      background: rgba(108, 99, 255, 0.2);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* ── Main Area ────────────────────────────────────────── */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Three Panel Layout ───────────────────────────────── */
+    .panels-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+    }
+
+    .panel:last-child {
+      border-right: none;
+    }
+
+    .panel-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .dot.green {
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    .dot.orange {
+      background: var(--orange);
+      box-shadow: 0 0 6px var(--orange);
+    }
+
+    .dot.blue {
+      background: var(--primary);
+      box-shadow: 0 0 6px var(--primary);
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .panel-actions .btn {
+      font-size: 11px;
+      padding: 6px 12px;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: var(--bg);
+      min-height: 0;
+    }
+
+    .panel-body.no-pad {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    /* ── Empty State ──────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 300px;
+      color: var(--text-dim);
+      text-align: center;
+      gap: 10px;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      opacity: 0.3;
+    }
+
+    .empty-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .empty-sub {
+      font-size: 12px;
+      max-width: 220px;
+      line-height: 1.6;
+    }
+
+    /* ── Audit Content ────────────────────────────────────── */
+    .audit-content {
+      font-size: 13px;
+      line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .score-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .score-value {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .score-value.high {
+      color: var(--success);
+    }
+
+    .score-value.mid {
+      color: var(--warn);
+    }
+
+    .score-value.low {
+      color: var(--danger);
+    }
+
+    /* ── Prompt Panel Content ─────────────────────────────── */
+    .prompt-content {
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text);
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+    }
+
+    .prompt-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .prompt-tag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      background: var(--surface2);
+    }
+
+    .prompt-tag.orange {
+      border-color: var(--orange);
+      color: var(--orange);
+      background: rgba(255, 159, 67, 0.1);
+    }
+
+    /* ── iframe ───────────────────────────────────────────── */
+    #preview-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+      display: block;
+    }
+
+    /* ── Error ────────────────────────────────────────────── */
+    .error-banner {
+      display: none;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      margin: 12px 28px;
+      color: var(--danger);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .error-banner.visible {
+      display: block;
+    }
+
+    /* ── History ──────────────────────────────────────────── */
+    .history-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 28px;
+      flex-shrink: 0;
+    }
+
+    .history-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .history-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .history-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-item:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .history-score {
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* ── Copy Flash ───────────────────────────────────────── */
+    .copy-flash {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--success);
+      color: #fff;
+      padding: 9px 22px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 9999;
+    }
+
+    .copy-flash.show {
+      opacity: 1;
+    }
+
+    /* ── Scrollbar ────────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 99px;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .panels-container {
+        flex-direction: column;
+      }
+
+      .panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        min-height: 400px;
+      }
+
+      .panel:last-child {
+        border-bottom: none;
+      }
+
+      header,
+      .input-section {
+        padding: 12px 16px;
+      }
+
+      .tab-bar {
+        padding: 0 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🎯</div>
+      <h1>Coaching <span>Audit</span> Agent</h1>
+    </div>
+    <div class="header-right">
+      <span class="header-badge">🔒 100% Local</span>
+      <span class="header-badge">🤖 Ollama Powered</span>
+      <span class="header-badge" id="agentCountBadge">4 Agents Active</span>
+    </div>
+  </header>
+
+  <!-- ── Input ──────────────────────────────────────────────────── -->
+  <div class="input-section">
+    <div class="input-label">Coaching Institute Website URL</div>
+    <div class="input-row">
+      <input type="text" id="urlInput" class="url-input" placeholder="https://yourcoachinginstitute.com" />
+      <button class="btn btn-primary" id="auditBtn" onclick="runAudit()">
+        ⚡ Run Full Audit
+      </button>
+      <button class="btn btn-outline" onclick="clearAll()">
+        ✕ Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Progress ───────────────────────────────────────────────── -->
+  <div class="progress-section" id="progressSection">
+    <div class="progress-header">
+      <span class="progress-title">⚙ Agents Working...</span>
+      <span class="progress-status" id="progressStatus">Initializing...</span>
+    </div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progressBar"></div>
+    </div>
+    <div class="steps-row">
+      <span class="step-pill" id="step1">🌐 Scraping</span>
+      <span class="step-pill" id="step2">📋 Audit Agent</span>
+      <span class="step-pill" id="step3">🧠 Prompt Agent</span>
+      <span class="step-pill" id="step4">🎨 Redesign Agent</span>
+      <span class="step-pill" id="step5">✅ Evaluator Agent</span>
+      <span class="step-pill" id="step6">💾 Saving</span>
+    </div>
+  </div>
+
+  <!-- ── Error ───────────────────────────────────────────────────── -->
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- ── Main Wrapper ────────────────────────────────────────────── -->
+  <div class="main-wrapper">
+
+    <!-- Tab bar (mobile only) -->
+    <div class="tab-bar" id="tabBar">
+      <div class="tab active" onclick="switchTab('audit')" id="tab-audit">
+        📋 Audit
+        <span class="tab-badge" id="tabBadgeAudit">—</span>
+      </div>
+      <div class="tab" onclick="switchTab('prompt')" id="tab-prompt">
+        🧠 Strategy Prompt
+        <span class="tab-badge" id="tabBadgePrompt">—</span>
+      </div>
+      <div class="tab" onclick="switchTab('preview')" id="tab-preview">
+        🖥 Preview
+        <span class="tab-badge" id="tabBadgePreview">—</span>
+      </div>
+    </div>
+
+    <!-- Three panels -->
+    <div class="panels-container" id="panelsContainer">
+
+      <!-- PANEL 1: Audit Report -->
+      <div class="panel" id="panelAudit">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="dot" id="dotAudit"></span>
+            Audit Report
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-outline" id="downloadAuditBtn" style="display:none" onclick="downloadAudit()">
+              ⬇ .txt
+            </button>
+          </div>
+        </div>
+        <div class="panel-body" id="auditPanel">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">Audit Report</div>
+            <div class="empty-sub">Website analysis will appear here after the audit runs.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 2: Strategy Prompt -->
+      <div class="panel" id="panelPrompt">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="dot" id="dotPrompt"></span>
+            AI Strategy Prompt
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-outline" id="copyPromptBtn" style="display:none" onclick="copyPrompt()">
+              📋 Copy
+            </button>
+          </div>
+        </div>
+        <div class="panel-body" id="promptPanel">
+          <div class="empty-state">
+            <div class="empty-icon">🧠</div>
+            <div class="empty-title">Strategy Prompt</div>
+            <div class="empty-sub">
+              The AI-generated redesign brief will appear here.
+              This is what the redesign agent uses to build the HTML.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: HTML Preview -->
+      <div class="panel" id="panelPreview">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="dot" id="dotPreview"></span>
+            Redesigned Preview
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-outline" id="copyHtmlBtn" style="display:none" onclick="copyHTML()">
+              📋 HTML
+            </button>
+            <button class="btn btn-accent" id="downloadHtmlBtn" style="display:none" onclick="downloadHTML()">
+              ⬇ .html
+            </button>
+          </div>
+        </div>
+        <div class="panel-body no-pad" id="previewPanelBody">
+          <div class="empty-state" id="previewEmpty">
+            <div class="empty-icon">🖥</div>
+            <div class="empty-title">HTML Preview</div>
+            <div class="empty-sub">The redesigned page will render here inside a safe iframe.</div>
+          </div>
+          <iframe id="preview-iframe" style="display:none;" sandbox="allow-scripts allow-same-origin"
+            title="Redesigned Website Preview">
+          </iframe>
+        </div>
+      </div>
+
+    </div><!-- end panels -->
+
+    <!-- History bar -->
+    <div class="history-section" id="historySection" style="display:none">
+      <div class="history-title">📁 Previous Runs</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </div><!-- end main-wrapper -->
+
+  <!-- Copy flash toast -->
+  <div class="copy-flash" id="copyFlash"></div>
+
+
+  <script>
+    // ── State ─────────────────────────────────────────────────────
+    let currentSlug = null;
+    let currentAudit = "";
+    let currentPrompt = "";
+    let currentHTML = "";
+    let activeTab = "audit";
+
+
+    // ── Run Audit ─────────────────────────────────────────────────
+    async function runAudit() {
+      const url = document.getElementById("urlInput").value.trim();
+      if (!url) { showError("Please enter a website URL."); return; }
+
+      clearAll(false);
+      showProgress(true);
+      setAuditBtn(true);
+      hideError();
+
+      setStep("step1", "active");
+      setProgress(8, "Launching browser and scraping website...");
+
+      try {
+        const stepTimer = simulateSteps();
+
+        const response = await fetch("/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+
+        clearInterval(stepTimer);
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.detail || "Server error");
+        }
+
+        const data = await response.json();
+
+        // Mark all steps done
+        setProgress(100, "All agents complete!");
+        ["step1", "step2", "step3", "step4", "step5", "step6"].forEach(s => setStep(s, "done"));
+
+        currentSlug = data.slug;
+        currentAudit = data.audit;
+        currentPrompt = data.generated_prompt || "";
+        currentHTML = data.html_code;
+
+        setTimeout(() => {
+          renderAudit(data);
+          renderPrompt(data.generated_prompt, data);
+          renderPreview(data.html_code);
+          showProgress(false);
+          setAuditBtn(false);
+          showTabBar(true);
+          loadHistory();
+        }, 500);
+
+      } catch (err) {
+        showProgress(false);
+        setAuditBtn(false);
+        showError("Error: " + err.message);
+        console.error(err);
+      }
+    }
+
+
+    // ── Render Audit Panel ─────────────────────────────────────────
+    function renderAudit(data) {
+      const panel = document.getElementById("auditPanel");
+      const score = data.eval_score || 0;
+      const scoreClass = score >= 8 ? "high" : score >= 6 ? "mid" : "low";
+      const scoreLabel = score >= 8 ? "Excellent" : score >= 6 ? "Good" : "Needs Work";
+      const passIcon = data.eval_passed ? "✅" : "⚠️";
+
+      // panel.innerHTML = `
+      //   <div class="score-badge">
+      //     <span style="color:var(--text-muted)">Quality Score:</span>
+      //     <span class="score-value ${scoreClass}">${score}/10</span>
+      //     <span>${passIcon} ${scoreLabel}</span>
+      //     <span style="color:var(--text-dim)">·</span>
+      //     <span style="color:var(--text-muted)">Iterations: ${data.iterations}</span>
+      //     <span style="color:var(--text-dim)">·</span>
+      //     <span style="color:var(--text-muted);font-size:11px">${data.slug}</span>
+      //   </div>
+      //   <div class="audit-content">${formatAuditText(data.audit)}</div>
+      // `;
+
+      panel.innerHTML = `
+        <div class="score-badge">
+          <span style="color:var(--text-muted)">Quality Score:</span>
+          <span class="score-value ${scoreClass}">${score}/10</span>
+          <span>${passIcon} ${scoreLabel}</span>
+          <span style="color:var(--text-dim)">·</span>
+          <span style="color:var(--text-muted)">Iters: ${data.iterations}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+          <span class="prompt-tag">CTA: ${data.eval_score_cta ?? '—'}/10</span>
+          <span class="prompt-tag">Hierarchy: ${data.eval_score_hierarchy ?? '—'}/10</span>
+          <span class="prompt-tag">Sections: ${data.eval_score_sections ?? '—'}/10</span>
+          <span class="prompt-tag">Trust: ${data.eval_score_trust ?? '—'}/10</span>
+          <span class="prompt-tag">Mobile: ${data.eval_score_mobile ?? '—'}/10</span>
+          ${data.eval_hard_fail ? `<span class="prompt-tag" style="border-color:var(--danger);color:var(--danger)">⛔ Hard Fail: ${data.eval_hard_fail_reason}</span>` : ''}
+        </div>
+        <div class="audit-content">${formatAuditText(data.audit)}</div>
+      `;
+
+      document.getElementById("downloadAuditBtn").style.display = "flex";
+      document.getElementById("dotAudit").classList.add("green");
+      document.getElementById("tabBadgeAudit").textContent = score + "/10";
+    }
+
+
+    // ── Render Prompt Panel ────────────────────────────────────────
+    function renderPrompt(promptText, data) {
+      const panel = document.getElementById("promptPanel");
+
+      if (!promptText || promptText.trim() === "") {
+        panel.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Prompt Not Available</div>
+          <div class="empty-sub">The prompt generator did not return output for this run.</div>
+        </div>`;
+        return;
+      }
+
+      const wordCount = promptText.trim().split(/\s+/).length;
+      const charCount = promptText.length;
+
+      panel.innerHTML = `
+      <div class="prompt-meta">
+        <span class="prompt-tag orange">🧠 AI Generated Brief</span>
+        <span class="prompt-tag">${wordCount} words</span>
+        <span class="prompt-tag">${charCount} chars</span>
+        <span class="prompt-tag">Used by Redesign Agent →</span>
+      </div>
+      <div class="prompt-content">${escapeHtml(promptText)}</div>
+    `;
+
+      document.getElementById("copyPromptBtn").style.display = "flex";
+      document.getElementById("dotPrompt").classList.add("orange");
+      document.getElementById("tabBadgePrompt").textContent = wordCount + "w";
+    }
+
+
+    // ── Render HTML Preview ────────────────────────────────────────
+    function renderPreview(htmlCode) {
+      if (!htmlCode) return;
+
+      const iframe = document.getElementById("preview-iframe");
+      const empty = document.getElementById("previewEmpty");
+
+      empty.style.display = "none";
+      iframe.style.display = "block";
+
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(htmlCode);
+      doc.close();
+
+      document.getElementById("copyHtmlBtn").style.display = "flex";
+      document.getElementById("downloadHtmlBtn").style.display = "flex";
+      document.getElementById("dotPreview").classList.add("blue");
+
+      const lines = htmlCode.split("\n").length;
+      document.getElementById("tabBadgePreview").textContent = lines + " lines";
+    }
+
+
+    // ── Tab switching (mobile) ─────────────────────────────────────
+    function switchTab(tab) {
+      activeTab = tab;
+
+      ["audit", "prompt", "preview"].forEach(t => {
+        document.getElementById("tab-" + t).classList.toggle("active", t === tab);
+        document.getElementById("panel" + capitalize(t)).style.display =
+          t === tab ? "flex" : "none";
+      });
+    }
+
+    function showTabBar(show) {
+      document.getElementById("tabBar").classList.toggle("visible", show);
+    }
+
+    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+
+    // ── Format audit text ──────────────────────────────────────────
+    function formatAuditText(text) {
+      if (!text) return "No audit generated.";
+
+      text = escapeHtml(text);
+
+      text = text.replace(
+        /^(INSTITUTE NAME:.*?)$/gm,
+        '<strong style="color:var(--accent);font-size:15px;display:block;margin-bottom:12px;">$1</strong>'
+      );
+
+      text = text.replace(
+        /^(OVERVIEW:|LOCAL SEO OPPORTUNITY:|PRIORITY ACTION:|5 MAJOR ISSUES:)$/gm,
+        '<strong style="color:var(--primary);display:block;margin-top:20px;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;">$1</strong>'
+      );
+
+      text = text.replace(
+        /^(\d+\. .+)$/gm,
+        '<strong style="color:var(--warn);display:block;margin-top:14px;">$1</strong>'
+      );
+
+      text = text.replace(
+        /^(Issue:|Why it hurts:|Fix:)/gm,
+        '<span style="color:var(--text-muted);font-weight:600;">$1</span>'
+      );
+
+      return text;
+    }
+
+
+    // ── Copy helpers ───────────────────────────────────────────────
+    async function copyHTML() {
+      if (!currentHTML) return;
+      await copyToClipboard(currentHTML, "✓ HTML Copied!");
+    }
+
+    async function copyPrompt() {
+      if (!currentPrompt) return;
+      await copyToClipboard(currentPrompt, "✓ Prompt Copied!");
+    }
+
+    async function copyToClipboard(text, message) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      flash(message);
+    }
+
+    function flash(msg) {
+      const el = document.getElementById("copyFlash");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2200);
+    }
+
+
+    // ── Download ───────────────────────────────────────────────────
+    function downloadHTML() {
+      if (currentSlug) window.open(`/download/redesign/${currentSlug}`, "_blank");
+    }
+
+    function downloadAudit() {
+      if (currentSlug) window.open(`/download/audit/${currentSlug}`, "_blank");
+    }
+
+
+    // ── History ────────────────────────────────────────────────────
+    async function loadHistory() {
+      try {
+        const res = await fetch("/history");
+        const data = await res.json();
+        if (!data.runs || data.runs.length === 0) return;
+
+        const section = document.getElementById("historySection");
+        const list = document.getElementById("historyList");
+
+        list.innerHTML = "";
+        section.style.display = "block";
+
+        data.runs.slice(0, 8).forEach(run => {
+          const score = run.eval_score || 0;
+          const color = score >= 8
+            ? "background:rgba(76,175,130,0.2);color:#4caf82"
+            : score >= 6
+              ? "background:rgba(255,217,61,0.2);color:#ffd93d"
+              : "background:rgba(255,107,107,0.2);color:#ff6b6b";
+
+          const item = document.createElement("div");
+          item.className = "history-item";
+          item.innerHTML = `
+          <span>${run.domain || run.url}</span>
+          <span class="history-score" style="${color}">${score}/10</span>
+          <span style="color:var(--text-dim);font-size:10px">${formatTs(run.timestamp)}</span>
+        `;
+          item.onclick = () => loadRun(run.slug);
+          list.appendChild(item);
+        });
+      } catch (e) { console.log("History load error:", e); }
+    }
+
+    async function loadRun(slug) {
+      try {
+        const res = await fetch(`/history/${slug}`);
+        const data = await res.json();
+
+        currentSlug = slug;
+
+        if (data.audit) {
+          currentAudit = data.audit;
+          document.getElementById("auditPanel").innerHTML =
+            `<div class="audit-content">${formatAuditText(data.audit)}</div>`;
+          document.getElementById("downloadAuditBtn").style.display = "flex";
+          document.getElementById("dotAudit").classList.add("green");
+        }
+
+        if (data.html_code) {
+          currentHTML = data.html_code;
+          renderPreview(data.html_code);
+        }
+
+        showTabBar(true);
+      } catch (e) { showError("Failed to load history run."); }
+    }
+
+
+    // ── Progress helpers ───────────────────────────────────────────
+    function showProgress(show) {
+      document.getElementById("progressSection").classList.toggle("visible", show);
+    }
+
+    function setProgress(pct, status) {
+      document.getElementById("progressBar").style.width = pct + "%";
+      document.getElementById("progressStatus").textContent = status;
+    }
+
+    function setStep(id, state) {
+      const el = document.getElementById(id);
+      el.classList.remove("active", "done");
+      if (state) el.classList.add(state);
+    }
+
+    function simulateSteps() {
+      const phases = [
+        ["step1", "active", 10, "Playwright scraping website..."],
+        ["step1", "done", 22, "Content + screenshot captured"],
+        ["step2", "active", 32, "Audit agent analyzing problems..."],
+        ["step2", "done", 44, "Audit report written"],
+        ["step3", "active", 54, "Prompt agent building design brief..."],
+        ["step3", "done", 65, "Strategy prompt generated"],
+        ["step4", "active", 74, "Redesign agent generating HTML..."],
+        ["step4", "done", 85, "HTML redesign complete"],
+        ["step5", "active", 90, "Evaluator scoring quality..."],
+        ["step5", "done", 95, "Evaluation done"],
+        ["step6", "active", 97, "Saving files to disk..."],
+      ];
+
+      let i = 0;
+      return setInterval(() => {
+        if (i < phases.length) {
+          const [stepId, state, pct, status] = phases[i];
+          setStep(stepId, state);
+          setProgress(pct, status);
+          i++;
+        }
+      }, 9000);
+    }
+
+
+    // ── Utility ───────────────────────────────────────────────────
+    function setAuditBtn(loading) {
+      const btn = document.getElementById("auditBtn");
+      btn.disabled = loading;
+      btn.innerHTML = loading ? "⏳ Agents Working..." : "⚡ Run Full Audit";
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("errorBanner");
+      el.textContent = "❌ " + msg;
+      el.classList.add("visible");
+    }
+
+    function hideError() {
+      document.getElementById("errorBanner").classList.remove("visible");
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function formatTs(ts) {
+      const s = String(ts || "");
+      if (s.length >= 8) {
+        return s.substring(6, 8) + "/" + s.substring(4, 6) + "/" + s.substring(0, 4);
+      }
+      return s;
+    }
+
+    function clearAll(resetInput = true) {
+      if (resetInput) document.getElementById("urlInput").value = "";
+
+      currentSlug = null; currentAudit = "";
+      currentPrompt = ""; currentHTML = "";
+
+      document.getElementById("auditPanel").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">Audit Report</div>
+        <div class="empty-sub">Enter a URL and click Run Audit to begin.</div>
+      </div>`;
+
+      document.getElementById("promptPanel").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🧠</div>
+        <div class="empty-title">Strategy Prompt</div>
+        <div class="empty-sub">The AI redesign brief will appear here.</div>
+      </div>`;
+
+      document.getElementById("previewEmpty").style.display = "flex";
+      document.getElementById("preview-iframe").style.display = "none";
+
+      ["downloadAuditBtn", "copyPromptBtn", "copyHtmlBtn", "downloadHtmlBtn"]
+        .forEach(id => document.getElementById(id).style.display = "none");
+
+      ["dotAudit", "dotPrompt", "dotPreview"]
+        .forEach(id => document.getElementById(id).className = "dot");
+
+      ["tabBadgeAudit", "tabBadgePrompt", "tabBadgePreview"]
+        .forEach(id => document.getElementById(id).textContent = "—");
+
+      showTabBar(false);
+      hideError();
+    }
+
+    // Enter key triggers audit
+    document.getElementById("urlInput")
+      .addEventListener("keydown", e => { if (e.key === "Enter") runAudit(); });
+
+    // Load history on startup
+    window.addEventListener("load", loadHistory);
+  </script>
+</body>
+
+</html>

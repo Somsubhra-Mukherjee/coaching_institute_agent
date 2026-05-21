@@ -1,0 +1,14 @@
+{
+  "slug": "sinhalclasses-com_20260521_215224",
+  "url": "https://www.sinhalclasses.com/bangalore",
+  "domain": "sinhalclasses-com",
+  "timestamp": "20260521_215224",
+  "eval_score": 5.0,
+  "eval_passed": false,
+  "iterations": 3,
+  "audit_file": "outputs/audits/sinhalclasses-com_20260521_215224_audit.txt",
+  "redesign_file": "outputs/redesigns/sinhalclasses-com_20260521_215224_redesign.html",
+  "screenshot_file": "outputs/screenshots/sinhalclasses-com_20260521_215224.png",
+  "status": "Eval: 5.0/10 \u2014 CTA:4 Hier:8 Sec:6 Trust:0 Mob:9 \u2014 FAILED",
+  "error": ""
+}
