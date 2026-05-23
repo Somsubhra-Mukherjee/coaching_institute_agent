@@ -291,6 +291,7 @@
 
 
 import json
+import re
 
 
 def get_audit_prompt(website_data: str) -> str:
@@ -605,87 +606,188 @@ End with exactly: </html>
 """
 
 
+# def get_evaluator_prompt(html_code: str, audit: str, ui_system: dict = None) -> str:
+#     sections_expected = 6
+#     if ui_system:
+#         sections_expected = len(ui_system.get("sections", [])) + 1
+
+#     return f"""
+# You are a strict quality evaluator for coaching institute landing pages.
+
+# AUDIT SUMMARY:
+# {audit[:600]}
+
+# HTML TO EVALUATE (first 4000 chars):
+# {html_code[:4000]}
+
+# EVALUATION CRITERIA — score each from 0 to 10:
+
+# 1. CTA CLARITY (0-10):
+#    - Is there a clear CTA in the hero section?
+#    - Are CTAs visually prominent (color, size)?
+#    - Is there a WhatsApp floating button?
+#    Full marks: hero CTA + secondary CTA + WhatsApp button all present and styled
+
+# 2. VISUAL HIERARCHY (0-10):
+#    - Does H1 → H2 → H3 flow correctly?
+#    - Is there one clear H1?
+#    - Are sections clearly separated with spacing?
+#    - Is typography consistent?
+#    Full marks: clear hierarchy, consistent spacing, no text walls
+
+# 3. SECTION DISCIPLINE (0-10):
+#    - Are there {sections_expected} sections or fewer?
+#    - Are sections purposeful (no filler sections)?
+#    - Is there a clear flow from hero → courses → trust → form?
+#    Full marks: 5-6 purposeful sections, clean flow
+
+# 4. TRUST SIGNALS (0-10):
+#    - Are there student testimonials?
+#    - Are there stat numbers (students enrolled, results, years)?
+#    - Is there a results/achievements section?
+#    Full marks: stats + testimonials + specific numbers present
+
+# 5. MOBILE UX (0-10):
+#    - Is there a responsive meta viewport tag?
+#    - Are there media queries for mobile?
+#    - Is there a mobile sticky CTA bar?
+#    - Do cards stack to single column on mobile?
+#    Full marks: viewport tag + media queries + mobile bar + single column cards
+
+# HARD FAIL RULES — auto-fail entire evaluation if ANY of these are true:
+#   ✗ No CTA button in the hero section
+#   ✗ More than 7 sections total in the page
+#   ✗ No trust signals anywhere (no testimonials, no stats)
+#   ✗ No form or lead capture element
+#   ✗ No WhatsApp button anywhere
+#   ✗ HTML is under 3000 characters (incomplete output)
+
+# SCORING:
+#   Total = average of all 5 scores
+#   PASSED = YES if total >= 7.0 AND no hard fail rules triggered
+
+# RESPOND IN THIS EXACT FORMAT — NOTHING ELSE:
+
+# SCORE_CTA: [0-10]
+# SCORE_HIERARCHY: [0-10]
+# SCORE_SECTIONS: [0-10]
+# SCORE_TRUST: [0-10]
+# SCORE_MOBILE: [0-10]
+# SCORE: [average of above, one decimal]
+# PASSED: [YES or NO]
+# HARD_FAIL: [YES or NO — YES if any hard fail rule triggered]
+# HARD_FAIL_REASON: [which rule failed, or "None"]
+
+# ISSUES:
+# - [specific issue 1]
+# - [specific issue 2]
+# - [specific issue 3]
+
+# IMPROVEMENT_INSTRUCTIONS:
+# - [specific fix 1 with exact element and change needed]
+# - [specific fix 2]
+# - [specific fix 3]
+# """
+
 def get_evaluator_prompt(html_code: str, audit: str, ui_system: dict = None) -> str:
-    sections_expected = 6
+    sections_allowed = 8
     if ui_system:
-        sections_expected = len(ui_system.get("sections", [])) + 1
+        sections_allowed = len(ui_system.get("sections", [])) + 2
+
+    html_preview = html_code[:5000]
+
+    # Check for hard fail conditions in HTML
+    has_hero_cta     = bool(re.search(r'id=["\']hero["\']', html_code, re.I)
+                       and re.search(r'btn-primary|btn btn', html_code, re.I))
+    has_whatsapp     = bool(re.search(r'whatsapp-float|wa\.me', html_code, re.I))
+    has_form         = bool(re.search(r'<form|form-card|lead-form', html_code, re.I))
+    has_trust        = bool(re.search(r'trust|testimonial|result-stat', html_code, re.I))
+    html_length_ok   = len(html_code) >= 3000
+    section_count    = len(re.findall(r'<section', html_code, re.I))
+    too_many_sections= section_count > sections_allowed
+
+    pre_checks = {
+        "has_hero_cta":     has_hero_cta,
+        "has_whatsapp":     has_whatsapp,
+        "has_form":         has_form,
+        "has_trust":        has_trust,
+        "html_length_ok":   html_length_ok,
+        "section_count_ok": not too_many_sections,
+        "section_count":    section_count,
+    }
+
+    pre_check_summary = "\n".join([f"  {k}: {v}" for k, v in pre_checks.items()])
 
     return f"""
 You are a strict quality evaluator for coaching institute landing pages.
+These are pre-computed checks on the HTML:
+
+PRE-CHECKS:
+{pre_check_summary}
 
 AUDIT SUMMARY:
-{audit[:600]}
+{audit[:500]}
 
-HTML TO EVALUATE (first 4000 chars):
-{html_code[:4000]}
+HTML PREVIEW (first 5000 chars):
+{html_preview}
 
-EVALUATION CRITERIA — score each from 0 to 10:
+SCORE EACH DIMENSION 0-10:
 
-1. CTA CLARITY (0-10):
-   - Is there a clear CTA in the hero section?
-   - Are CTAs visually prominent (color, size)?
-   - Is there a WhatsApp floating button?
-   Full marks: hero CTA + secondary CTA + WhatsApp button all present and styled
+1. CTA_CLARITY (0-10):
+   - Hero section has a primary CTA button? (+4)
+   - CTA uses action language (Book/Enroll/Apply/Get)? (+3)
+   - WhatsApp floating button present? (+3)
 
-2. VISUAL HIERARCHY (0-10):
-   - Does H1 → H2 → H3 flow correctly?
-   - Is there one clear H1?
-   - Are sections clearly separated with spacing?
-   - Is typography consistent?
-   Full marks: clear hierarchy, consistent spacing, no text walls
+2. VISUAL_HIERARCHY (0-10):
+   - Single H1 on page? (+2)
+   - H2 headings for each section? (+3)
+   - No text walls (paragraphs under 4 lines)? (+3)
+   - Consistent section headers with subtitle? (+2)
 
-3. SECTION DISCIPLINE (0-10):
-   - Are there {sections_expected} sections or fewer?
-   - Are sections purposeful (no filler sections)?
-   - Is there a clear flow from hero → courses → trust → form?
-   Full marks: 5-6 purposeful sections, clean flow
+3. SECTION_DISCIPLINE (0-10):
+   - 5-7 sections total? (+4)
+   - No redundant/filler sections? (+3)
+   - Logical flow: hero→trust→courses→results→form→faq? (+3)
 
-4. TRUST SIGNALS (0-10):
-   - Are there student testimonials?
-   - Are there stat numbers (students enrolled, results, years)?
-   - Is there a results/achievements section?
-   Full marks: stats + testimonials + specific numbers present
+4. TRUST_SIGNALS (0-10):
+   - Student testimonials present? (+3)
+   - Stat numbers (students/years/results)? (+4)
+   - Specific numbers not vague claims? (+3)
 
-5. MOBILE UX (0-10):
-   - Is there a responsive meta viewport tag?
-   - Are there media queries for mobile?
-   - Is there a mobile sticky CTA bar?
-   - Do cards stack to single column on mobile?
-   Full marks: viewport tag + media queries + mobile bar + single column cards
+5. MOBILE_UX (0-10):
+   - viewport meta tag present? (+2)
+   - Media queries present? (+3)
+   - Mobile CTA bar present? (+2)
+   - Cards stack to 1 column on mobile? (+3)
 
-HARD FAIL RULES — auto-fail entire evaluation if ANY of these are true:
-  ✗ No CTA button in the hero section
-  ✗ More than 7 sections total in the page
-  ✗ No trust signals anywhere (no testimonials, no stats)
-  ✗ No form or lead capture element
-  ✗ No WhatsApp button anywhere
-  ✗ HTML is under 3000 characters (incomplete output)
+HARD FAIL — auto-set PASSED to NO if ANY true:
+  - has_hero_cta is False
+  - has_whatsapp is False
+  - has_form is False
+  - html_length_ok is False
+  - too_many_sections is True ({section_count} sections found, max {sections_allowed})
 
-SCORING:
-  Total = average of all 5 scores
-  PASSED = YES if total >= 7.0 AND no hard fail rules triggered
-
-RESPOND IN THIS EXACT FORMAT — NOTHING ELSE:
+RESPOND IN THIS EXACT FORMAT ONLY:
 
 SCORE_CTA: [0-10]
 SCORE_HIERARCHY: [0-10]
 SCORE_SECTIONS: [0-10]
 SCORE_TRUST: [0-10]
 SCORE_MOBILE: [0-10]
-SCORE: [average of above, one decimal]
+SCORE: [average to 1 decimal]
 PASSED: [YES or NO]
-HARD_FAIL: [YES or NO — YES if any hard fail rule triggered]
-HARD_FAIL_REASON: [which rule failed, or "None"]
+HARD_FAIL: [YES or NO]
+HARD_FAIL_REASON: [specific reason or None]
 
 ISSUES:
-- [specific issue 1]
-- [specific issue 2]
-- [specific issue 3]
+- [issue 1]
+- [issue 2]
+- [issue 3]
 
 IMPROVEMENT_INSTRUCTIONS:
-- [specific fix 1 with exact element and change needed]
-- [specific fix 2]
-- [specific fix 3]
+- [fix 1]
+- [fix 2]
+- [fix 3]
 """
 
 
