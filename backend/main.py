@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import traceback
 from pathlib import Path
@@ -6,6 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+
+# ── Windows event loop fix for Playwright ──────────────────────────────────
+# MUST be set before any async operations or app creation
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
 
 from backend.scraper.website_scraper import scrape_website, format_scraped_data_for_prompt
 from backend.agents.workflow import build_workflow, create_initial_state

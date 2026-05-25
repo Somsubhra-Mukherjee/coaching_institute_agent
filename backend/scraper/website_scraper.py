@@ -1,11 +1,21 @@
 import asyncio
 import json
 import re
+import sys
 from pathlib import Path
 from datetime import datetime
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from slugify import slugify
+
+
+# ── Windows event loop fix for Playwright ──────────────────────────────────
+# On Windows, asyncio needs ProactorEventLoop for subprocess (which Playwright uses)
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
 
 
 # ── Output folder for screenshots ──────────────────────────────────────────
