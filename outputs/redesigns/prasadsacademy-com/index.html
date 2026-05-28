@@ -1477,19 +1477,70 @@
         padding: 24px 16px
       }
     }
-  /* ══════════════════════════════════════════════════════
+
+    /* ══════════════════════════════════════════════════════
    SECTION — TEAM
 ═══════════════════════════════════════════════════════ */
-#team { padding: 80px 0; background: var(--bg-light); }
-.team-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.team-card { background: var(--bg-white); border-radius: var(--radius-lg); padding: 24px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: var(--transition); }
-.team-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-.team-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 16px; border: 4px solid var(--primary-light); }
-.team-name { font-size: 18px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
-.team-role { font-size: 14px; color: var(--primary); font-weight: 600; }
-@media(max-width:768px) { .team-cards { grid-template-columns: 1fr 1fr; } }
-@media(max-width:480px) { .team-cards { grid-template-columns: 1fr; } }
-</style>
+    #team {
+      padding: 80px 0;
+      background: var(--bg-light);
+    }
+
+    .team-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .team-card {
+      background: var(--bg-white);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .team-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .team-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 16px;
+      border: 4px solid var(--primary-light);
+    }
+
+    .team-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+
+    .team-role {
+      font-size: 14px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    @media(max-width:768px) {
+      .team-cards {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width:480px) {
+      .team-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -1663,49 +1714,58 @@
   </section>
 
   <!-- ══ TEAM ═══════════════════════════════════════════════════ -->
-<section id="team" class="section">
-<div class="container">
-  <div class="section-header">
-    <h2>Meet Our Team</h2>
-    <p>Learn from the best educators in the industry.</p>
-  </div>
-  <div class="team-cards">
-    <div class="team-card">
-      <img src="https://www.prasadsacademy.com/wp-content/uploads/2019/08/WhatsApp-Image-2019-08-07-at-10.37.42-PM.jpeg" class="team-avatar" alt="Prasad Reddy">
-      <div class="team-name">Prasad Reddy</div>
-      <div class="team-role">Faculty (Aptitude)</div>
+  <section id="team" class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Meet Our Team</h2>
+        <p>Learn from the best educators in the industry.</p>
+      </div>
+      <div class="team-cards">
+        <div class="team-card">
+          <img
+            src="https://www.prasadsacademy.com/wp-content/uploads/2019/08/WhatsApp-Image-2019-08-07-at-10.37.42-PM.jpeg"
+            class="team-avatar" alt="Prasad Reddy">
+          <div class="team-name">Prasad Reddy</div>
+          <div class="team-role">Faculty (Aptitude)</div>
+        </div>
+        <div class="team-card">
+          <img
+            src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/WhatsApp-Image-2024-11-12-at-23.09.13-4.jpeg"
+            class="team-avatar" alt="Divya">
+          <div class="team-name">Divya</div>
+          <div class="team-role">Faculty (English)</div>
+        </div>
+        <div class="team-card">
+          <img src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/HSR_3746-1.jpg" class="team-avatar"
+            alt="Surya">
+          <div class="team-name">Surya</div>
+          <div class="team-role">Faculty (Reasoning)</div>
+        </div>
+        <div class="team-card">
+          <img src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/IMG20241106110640-1.jpg"
+            class="team-avatar" alt="Chetan">
+          <div class="team-name">Chetan</div>
+          <div class="team-role">Faculty (History & Polity)</div>
+        </div>
+        <div class="team-card">
+          <img
+            src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/WhatsApp-Image-2024-11-12-at-20.09.36-2.jpeg"
+            class="team-avatar" alt="Sagar">
+          <div class="team-name">Sagar</div>
+          <div class="team-role">Faculty (Banking Awareness)</div>
+        </div>
+        <div class="team-card">
+          <img src="https://www.prasadsacademy.com/wp-content/plugins/elementor/assets/images/placeholder.png"
+            class="team-avatar" alt="Satish">
+          <div class="team-name">Satish</div>
+          <div class="team-role">Faculty (General Science)</div>
+        </div>
+      </div>
     </div>
-    <div class="team-card">
-      <img src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/WhatsApp-Image-2024-11-12-at-23.09.13-4.jpeg" class="team-avatar" alt="Divya">
-      <div class="team-name">Divya</div>
-      <div class="team-role">Faculty (English)</div>
-    </div>
-    <div class="team-card">
-      <img src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/HSR_3746-1.jpg" class="team-avatar" alt="Surya">
-      <div class="team-name">Surya</div>
-      <div class="team-role">Faculty (Reasoning)</div>
-    </div>
-    <div class="team-card">
-      <img src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/IMG20241106110640-1.jpg" class="team-avatar" alt="Chetan">
-      <div class="team-name">Chetan</div>
-      <div class="team-role">Faculty (History & Polity)</div>
-    </div>
-    <div class="team-card">
-      <img src="https://www.prasadsacademy.com/wp-content/uploads/2024/11/WhatsApp-Image-2024-11-12-at-20.09.36-2.jpeg" class="team-avatar" alt="Sagar">
-      <div class="team-name">Sagar</div>
-      <div class="team-role">Faculty (Banking Awareness)</div>
-    </div>
-    <div class="team-card">
-      <img src="https://www.prasadsacademy.com/wp-content/plugins/elementor/assets/images/placeholder.png" class="team-avatar" alt="Satish">
-      <div class="team-name">Satish</div>
-      <div class="team-role">Faculty (General Science)</div>
-    </div>
-  </div>
-</div>
-</section>
+  </section>
 
-<!-- ══ RESULTS ════════════════════════════════════════════════ -->
-<section id="results" class="section">
+  <!-- ══ RESULTS ════════════════════════════════════════════════ -->
+  <section id="results" class="section">
     <div class="container">
       <div class="section-header">
         <h2>Our Results Speak for Themselves</h2>
