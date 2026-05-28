@@ -13,7 +13,7 @@ AUDIT_MODEL = "llama3.1:8b"
 REDESIGN_MODEL = "qwen2.5-coder:7b"
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 # Track which service we're using
 USING_OPENAI = False
@@ -61,22 +61,32 @@ def call_openai(prompt: str, system: str = "") -> str:
 
 def call_groq(prompt: str, system: str = "") -> str:
     """
-    Call Groq API using OpenAI's client. Falls back to OpenAI if it fails.
+    Call Groq API. Truncates input to stay within free-tier TPM limits.
+    gemma2-9b-it has 15k TPM; we reserve ~4k for output → cap input at ~11k tokens (~44k chars).
     """
     try:
         from openai import OpenAI
     except ImportError:
         raise RuntimeError("openai package not installed. Run: pip install openai")
 
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY not set in .env")
+
+    # Rough truncation: 1 token ≈ 4 chars. Cap total input at ~44k chars (~11k tokens).
+    MAX_INPUT_CHARS = 44_000
+    system_chars = len(system)
+    available = MAX_INPUT_CHARS - system_chars
+    if len(prompt) > available:
+        print(f"[GROQ] Prompt too long ({len(prompt)} chars) — truncating to {available} chars")
+        prompt = prompt[:available] + "\n\n[... content truncated to fit model limit ...]"
+
     client = OpenAI(
         api_key=GROQ_API_KEY,
         base_url="https://api.groq.com/openai/v1"
     )
     messages = []
-
     if system:
         messages.append({"role": "system", "content": system})
-
     messages.append({"role": "user", "content": prompt})
 
     try:
@@ -89,17 +99,16 @@ def call_groq(prompt: str, system: str = "") -> str:
             top_p=0.9,
         )
         result = response.choices[0].message.content
-        estimated_tokens = len(result) // 4
-        print(f"[GROQ] Response received. Length: {len(result)} chars (~{estimated_tokens} tokens)")
-        
+        print(f"[GROQ] Response received. {len(result)} chars (~{len(result)//4} tokens)")
+
         global USING_GROQ, USING_OPENAI
         USING_GROQ = True
         USING_OPENAI = False
         return result
 
     except Exception as e:
-        print(f"[GROQ] Error: {e}. Falling back to OpenAI...")
-        return call_openai(prompt, system)
+        print(f"[GROQ] Error: {e}")
+        raise RuntimeError(f"Groq call failed: {e}")
 
 
 def call_ollama(model: str, prompt: str, system: str = "", max_retries: int = 1) -> str:

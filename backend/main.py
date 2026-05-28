@@ -266,9 +266,13 @@ async def get_history():
 async def get_run_by_slug(slug: str):
     """Return audit and HTML for a specific previous run"""
     audit_files = list(Path("outputs/audits").glob(f"{slug}*"))
-    redesign_files = list(Path("outputs/redesigns").glob(f"{slug}*"))
 
-    if not audit_files and not redesign_files:
+    # Derive the domain folder (strip _YYYYMMDD_HHMMSS suffix)
+    parts = slug.split("_")
+    domain_folder = "_".join(parts[:-2]) if len(parts) >= 3 else slug
+    redesign_index = Path("outputs/redesigns") / domain_folder / "index.html"
+
+    if not audit_files and not redesign_index.exists():
         raise HTTPException(status_code=404, detail="Run not found")
 
     result = {"slug": slug}
@@ -277,9 +281,9 @@ async def get_run_by_slug(slug: str):
         result["audit"] = read_file(str(audit_files[0]))
         result["audit_file"] = str(audit_files[0])
 
-    if redesign_files:
-        result["html_code"] = read_file(str(redesign_files[0]))
-        result["redesign_file"] = str(redesign_files[0])
+    if redesign_index.exists():
+        result["html_code"] = read_file(str(redesign_index))
+        result["redesign_file"] = str(redesign_index)
 
     return result
 
@@ -299,12 +303,14 @@ async def download_audit(slug: str):
 
 @app.get("/download/redesign/{slug}")
 async def download_redesign(slug: str):
-    """Download redesign .html file"""
-    files = list(Path("outputs/redesigns").glob(f"{slug}*"))
-    if not files:
+    """Download redesign index.html from the domain folder"""
+    parts = slug.split("_")
+    domain_folder = "_".join(parts[:-2]) if len(parts) >= 3 else slug
+    filepath = Path("outputs/redesigns") / domain_folder / "index.html"
+    if not filepath.exists():
         raise HTTPException(status_code=404, detail="Redesign file not found")
     return FileResponse(
-        path=str(files[0]),
-        filename=files[0].name,
+        path=str(filepath),
+        filename=f"{domain_folder}_redesign.html",
         media_type="text/html"
     )
