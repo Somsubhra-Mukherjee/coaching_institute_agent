@@ -295,57 +295,66 @@ import re
 
 
 def get_audit_prompt(website_data: str) -> str:
-    return f"""
+    prompt_template = """
 You are a senior CRO and UX consultant specializing in Indian coaching institutes.
 
 Analyzed website content:
 {website_data}
 
-Write a concise, honest website audit (300-400 words).
+Write a concise, honest website audit. Be extremely fast and concise to save generation time. 
+Do not output any markdown code blocks, introductory text, or extra commentary. 
+Only output the exact structure below, replacing the bracketed placeholders.
 
 STRICT FORMAT:
 
-INSTITUTE NAME: [extract from content or use domain name]
+[INSTITUTE NAME EXTRACTED FROM CONTENT] × KGP Hustle House
 
-OVERVIEW:
-[2-3 sentences on current state and biggest problem]
+Website Growth Audit
 
-5 MAJOR ISSUES:
+Hi sir, our team went through your site and identified these 5 things that might be holding your site back from getting more students. Skim the entire audit report and check the site below for the mockup we created.
+
+5 Key Website Problems Affecting Conversions
 
 1. [ISSUE TITLE]
-Issue: [what is wrong]
-Why it hurts: [impact on trust or conversions]
-Fix: [specific actionable improvement]
+[1-2 sentences describing the problem and why it hurts conversions or trust]
+
+Fix:
+[1-2 sentences describing the specific actionable improvement]
 
 2. [ISSUE TITLE]
-Issue: [what is wrong]
-Why it hurts: [impact on trust or conversions]
-Fix: [specific actionable improvement]
+[1-2 sentences describing the problem and why it hurts conversions or trust]
+
+Fix:
+[1-2 sentences describing the specific actionable improvement]
 
 3. [ISSUE TITLE]
-Issue: [what is wrong]
-Why it hurts: [impact on trust or conversions]
-Fix: [specific actionable improvement]
+[1-2 sentences describing the problem and why it hurts conversions or trust]
+
+Fix:
+[1-2 sentences describing the specific actionable improvement]
 
 4. [ISSUE TITLE]
-Issue: [what is wrong]
-Why it hurts: [impact on trust or conversions]
-Fix: [specific actionable improvement]
+[1-2 sentences describing the problem and why it hurts conversions or trust]
+
+Fix:
+[1-2 sentences describing the specific actionable improvement]
 
 5. [ISSUE TITLE]
-Issue: [what is wrong]
-Why it hurts: [impact on trust or conversions]
-Fix: [specific actionable improvement]
+[1-2 sentences describing the problem and why it hurts conversions or trust]
 
-LOCAL SEO OPPORTUNITY:
-[2-3 sentences on local SEO improvements]
+Fix:
+[1-2 sentences describing the specific actionable improvement]
 
-PRIORITY ACTION:
-[Single most important fix]
+SEO Opportunity
+[2-3 sentences on local SEO improvements specific to this institute]
+
+If you like this, feel free to book a discovery call at https://cal.com/kgphustlehouse/seo
+
+Prepared by KGP Hustle House - IIT Kharagpur students helping businesses grow through modern websites & SEO.
 
 TONE: Direct, smart, helpful. Not corporate. Not insulting.
 """
-
+    return prompt_template.format(website_data=website_data)
 
 def get_redesign_prompt(website_data: str, audit: str) -> str:
     """Fallback prompt — used only if prompt generator fails."""

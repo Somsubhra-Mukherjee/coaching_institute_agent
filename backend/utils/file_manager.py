@@ -24,6 +24,13 @@ def generate_file_slug(url: str) -> str:
     return f"{slugify(domain)}_{timestamp}"
 
 
+def get_domain_slug(url: str) -> str:
+    """Get clean domain-only slug (no timestamp), used as redesign folder name."""
+    clean = url.replace("https://", "").replace("http://", "").replace("www.", "")
+    domain = clean.split("/")[0]
+    return slugify(domain)
+
+
 def save_audit(audit_text: str, slug: str) -> str:
     """Save audit text to .txt file. Returns file path."""
     filename = f"{slug}_audit.txt"
@@ -40,9 +47,14 @@ def save_audit(audit_text: str, slug: str) -> str:
 
 
 def save_redesign(html_code: str, slug: str) -> str:
-    """Save HTML redesign to .html file. Returns file path."""
-    filename = f"{slug}_redesign.html"
-    filepath = REDESIGNS_DIR / filename
+    """Save HTML redesign to outputs/redesigns/<domain>/index.html. Returns file path."""
+    # Strip _YYYYMMDD_HHMMSS timestamp suffix → just the domain part
+    parts = slug.split("_")
+    domain_folder = "_".join(parts[:-2]) if len(parts) >= 3 else slug
+
+    folder = REDESIGNS_DIR / domain_folder
+    folder.mkdir(parents=True, exist_ok=True)
+    filepath = folder / "index.html"
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html_code)
