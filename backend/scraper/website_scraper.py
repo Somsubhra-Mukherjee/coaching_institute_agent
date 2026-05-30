@@ -67,6 +67,8 @@ async def scrape_website(url: str) -> dict:
         "cta_texts": [],
         "images_alt": [],
         "raw_text": "",
+        "detected_primary": "#1a237e",
+        "all_colors": [],
         "scrape_success": False,
         "error": None
     }
@@ -108,6 +110,56 @@ async def scrape_website(url: str) -> dict:
             # ── Get full HTML content ───────────────────────────────────
             html_content = await page.content()
             page_title = await page.title()
+
+            # ── Extract colors from computed styles ───────────────────────
+            print("[SCRAPER] Extracting computed style colors...")
+            try:
+                colors_data = await page.evaluate("""() => {
+                    function rgbToHex(rgb) {
+                        if (!rgb) return null;
+                        const matches = rgb.match(/^rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)$/);
+                        if (!matches) {
+                            const rgbaMatches = rgb.match(/^rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),\\s*([\\d.]+)\\)$/);
+                            if (rgbaMatches && parseFloat(rgbaMatches[4]) === 0) return null;
+                            if (rgbaMatches) return "#" + rgbaMatches.slice(1, 4).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+                            return null;
+                        }
+                        return "#" + matches.slice(1, 4).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+                    }
+
+                    const colorStats = {};
+                    const elements = document.querySelectorAll('button, a, h1, h2, header, [class*="nav"], [class*="menu"], [class*="btn"], [class*="button"]');
+                    elements.forEach(el => {
+                        const style = window.getComputedStyle(el);
+                        const bg = rgbToHex(style.backgroundColor);
+                        const fg = rgbToHex(style.color);
+                        
+                        if (bg && bg !== '#ffffff' && bg !== '#000000' && bg !== '#transparent') {
+                            colorStats[bg] = (colorStats[bg] || 0) + 1;
+                        }
+                        if (fg && fg !== '#ffffff' && fg !== '#000000' && fg !== '#333333' && fg !== '#222222' && fg !== '#1a1a2e') {
+                            colorStats[fg] = (colorStats[fg] || 0) + 1;
+                        }
+                    });
+
+                    let primaryHex = '#1a237e';
+                    let maxCount = 0;
+                    for (const [color, count] of Object.entries(colorStats)) {
+                        if (count > maxCount) {
+                            maxCount = count;
+                            primaryHex = color;
+                        }
+                    }
+                    return {
+                        detected_primary: primaryHex,
+                        all_colors: Object.keys(colorStats).slice(0, 5)
+                    };
+                }""")
+                scraped_data["detected_primary"] = colors_data.get("detected_primary", "#1a237e")
+                scraped_data["all_colors"] = colors_data.get("all_colors", [])
+                print(f"[SCRAPER] Detected primary color: {scraped_data['detected_primary']}, all: {scraped_data['all_colors']}")
+            except Exception as e:
+                print(f"[SCRAPER] Color extraction failed: {e}")
 
             await browser.close()
 
@@ -231,7 +283,7 @@ async def scrape_website(url: str) -> dict:
 
         # ── Raw text (full page text dump, capped) ─────────────────────
         raw_text = clean_text(soup.get_text(separator=" "))
-        scraped_data["raw_text"] = raw_text[:5000]  # cap at 5000 chars
+        scraped_data["raw_text"] = raw_text[:10000]  # cap at 10000 chars
 
         scraped_data["scrape_success"] = True
         print(f"[SCRAPER] Scraping complete for {url}")
@@ -256,6 +308,8 @@ def format_scraped_data_for_prompt(data: dict) -> str:
     lines.append(f"PAGE TITLE: {data['meta'].get('title', 'N/A')}")
     lines.append(f"META DESCRIPTION: {data['meta'].get('description', 'N/A')}")
     lines.append(f"META KEYWORDS: {data['meta'].get('keywords', 'N/A')}")
+    lines.append(f"DETECTED PRIMARY COLOR: {data.get('detected_primary', '#1a237e')}")
+    lines.append(f"DETECTED BRAND COLORS: {', '.join(data.get('all_colors', []))}")
     lines.append("")
 
     lines.append("--- HEADINGS ---")
@@ -298,7 +352,7 @@ def format_scraped_data_for_prompt(data: dict) -> str:
     lines.append("")
 
     lines.append("--- RAW PAGE TEXT (excerpt) ---")
-    lines.append(data.get("raw_text", "")[:1500])
+    lines.append(data.get("raw_text", "")[:8000])
 
     return "\n".join(lines)
 

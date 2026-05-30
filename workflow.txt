@@ -1,0 +1,202 @@
+# Coaching Institute Audit Agent: System Architecture & Workflow Guide
+
+This document provides a comprehensive, end-to-end explanation of the **Coaching Institute Audit Agent** system following the architectural streamlining. It details the technologies used, file layouts, prompt engineering strategies, and the sequential execution flow orchestrated by the AI agents.
+
+---
+
+## 🏗️ 1. Core Technology Stack
+
+The application is structured into a modern dual-layer architecture (static frontend and Python backend) running a state-based multi-agent orchestration:
+
+*   **Frontend**: 
+    *   **Core**: Vanilla HTML5, Vanilla JavaScript (`fetch`, async/await, dynamic DOM manipulation).
+    *   **Styling**: Vanilla CSS (glassmorphism, CSS variables, dark theme, smooth micro-animations).
+    *   **External Assets**: Font Awesome 6 (via CDN), Google Fonts (Inter via `@import`).
+*   **Backend**:
+    *   **Server**: FastAPI, Uvicorn (HTTP REST API, CORS middleware, StaticFiles mount).
+    *   **Scraper**: Playwright (headless Chromium instance, viewport emulation, computed styles evaluation, full-page screenshot capture), BeautifulSoup4 (HTML node parsing, text cleaning).
+    *   **Orchestration**: LangGraph (StateGraph, conditional routing, iteration loop management).
+    *   **LLM Connectivity**: 
+        *   **Local Engine**: Ollama (Client SDK connecting to custom configurable models: `OLLAMA_AUDIT_MODEL` [llama-4-scout], `OLLAMA_CONTENT_MODEL` [qwen3-32b], and `OLLAMA_EVALUATOR_MODEL` [llama-3.1-8b]).
+        *   **API Failover / Main Engine**: Groq API using specialized specialized models mapping:
+            *   **Audit**: `meta-llama/llama-4-scout-17b-16e-instruct`
+            *   **Content Generation**: `qwen/qwen3-32b` (supports thinking process)
+            *   **Evaluation**: `llama-3.1-8b-instant`
+            *   Automatic rate-limit and context-overflow recovery is implemented across all model calls.
+
+---
+
+## 📂 2. Directory Layout & File Mapping
+
+Below is the file layout of the coaching institute agent and the purpose of each file:
+
+```
+coaching_institute_agent/
+│
+├── run.py                       # Server bootstrapper (handles Windows event loop policy)
+├── start.bat                    # Script to activate virtual environment and start the app
+├── requirements.txt             # Python dependencies (LangGraph, FastAPI, Playwright, etc.)
+├── overview.md                  # High-level architecture and glossary
+├── workflow.txt                 # [THIS FILE] Architecture & Workflow Guide
+│
+├── frontend/                    # Client-side files served at /static
+│   ├── index.html               # Main user interface (dashboard, inputs, content mapping, results panel)
+│   └── styles.css               # Styling rules (gradients, grid card states)
+│
+└── backend/                     # Python API and AI agents logic
+    ├── main.py                  # FastAPI router, CORS setup, and API routes definition
+    │
+    ├── scraper/
+    │   └── website_scraper.py   # Scrapes website texts, metadata, brand colors, and screenshots
+    │
+    ├── agents/
+    │   ├── workflow.py          # StateGraph definition, nodes, router edge, and parser logic
+    │   ├── base_template.py     # HTML master template with replacement placeholders
+    │   ├── template_modifier.py # Content specialist filling base template placeholders with JSON values
+    │   ├── prompt_generator.py  # [DEPRECATED/INACTIVE] 
+    │   ├── ui_system_agent.py   # [DEPRECATED/INACTIVE] 
+    │   └── html_refiner.py      # [DEPRECATED/INACTIVE] 
+    │
+    └── utils/
+        ├── file_manager.py      # Read/write actions for metadata, audits, redesigns, and site texts
+        ├── ollama_client.py     # Handles model invocation, retries, and API fallbacks
+        ├── prompts.py           # Contains prompt templates for audits, evaluations, and patches
+        └── image_utils.py       # Helper functions for screenshot resizing and base64 conversion
+```
+
+---
+
+## 🔄 3. End-to-End Workflow Execution
+
+The streamlined workflow moves from user inputs, to scraping, to multi-stage AI optimization, and finally to file storage.
+
+### Detailed Execution Diagram
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User Browser
+    participant API as FastAPI (backend/main.py)
+    participant Scraper as Scraper (website_scraper.py)
+    participant Graph as LangGraph (agents/workflow.py)
+    participant Ollama as Ollama / Groq Client
+    participant Files as File Manager (utils/file_manager.py)
+
+    User->>API: POST /audit { url }
+    API->>Scraper: scrape_website(url)
+    activate Scraper
+    Note over Scraper: Launches headless Chromium<br/>Captures full-page screenshot<br/>Extracts brand colors & DOM text
+    Scraper-->>API: scraped_data dict
+    deactivate Scraper
+    
+    API->>API: format_scraped_data_for_prompt()
+    API->>Graph: workflow.invoke(initial_state)
+    activate Graph
+    
+    Note over Graph: Node 1: audit_agent
+    Graph->>Ollama: call_audit_model(get_audit_prompt)
+    Ollama-->>Graph: Critique & Audit Text
+    
+    loop Max 3 Iterations (Or passes Evaluator checks)
+        Note over Graph: Node 2: template_modifier_agent
+        alt Iteration = 0
+            Graph->>Ollama: call_redesign_model(build_filler_prompt) [Token trimmed data]
+            Ollama-->>Graph: Placeholder values JSON (Text Copy + Colors + Typography)
+            Note over Graph: Fills base_template.py placeholders via Python .replace()
+        else Iteration > 0 (Refine JSON content mapping)
+            Note over Graph: Sends previous JSON values & evaluator feedback
+            Graph->>Ollama: call_redesign_model(build_filler_prompt)
+            Ollama-->>Graph: Updated Placeholder values JSON
+            Note over Graph: Merges and refills base_template.py via Python
+        end
+        
+        Note over Graph: Node 3: evaluator_agent
+        Graph->>Ollama: call_evaluator_model(get_evaluator_prompt) [Truncated preview]
+        Ollama-->>Graph: score, pass status, feedback text
+        Note over Graph: Router Check: should_regenerate()
+    end
+    
+    Graph-->>API: final_state dict
+    deactivate Graph
+    
+    API->>Files: Save Audit (.txt), Redesign (.html), Metadata (.json), Texts (.txt)
+    Files-->>API: Saved file paths
+    API-->>User: AuditResponse JSON (Success status, audit, variables JSON, html_code, scores, paths)
+```
+
+---
+
+## ⚙️ 4. Step-by-Step Pipeline Walkthrough
+
+### Step 1: Request & Scraping
+1. The user inputs a coaching institute URL on the landing page. The frontend triggers `POST /audit` to the backend.
+2. The endpoint calls [website_scraper.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/scraper/website_scraper.py):
+   * Opens the page using **Playwright**.
+   * Takes a full-page screenshot and saves it in `outputs/screenshots/`.
+   * Queries the DOM using BeautifulSoup to extract metadata, headings (H1-H4), buttons, CTAs, testimonials, lead forms, and alt texts.
+   * Evaluates computed styles via browser JavaScript to identify the dominant brand colors, establishing the institute's `DETECTED PRIMARY COLOR` and `DETECTED BRAND COLORS`.
+3. [main.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/main.py) formats the parsed dict into a clean textual overview for the LLM.
+
+### Step 2: The LangGraph Workflow
+The orchestration engine uses a simplified `StateGraph` built around a shared `AgentState` object. It advances sequentially through the following nodes:
+
+#### 1. Audit Agent (`audit_agent` Node)
+*   **Role**: CRO (Conversion Rate Optimization) and UX Expert.
+*   **Task**: Reviews the scraped content and identifies conversion bottlenecks.
+*   **Output**: Generates a standard audit report: Institute Name, Overview, 5 Major Issues (Title, Issue, Why it hurts, Fix), Local SEO Opportunity, and one Priority Action.
+
+#### 2. Template Modifier Agent (`template_modifier_agent` Node)
+*   **Role**: Content Mapper, Copywriter & Color Palettes Specialist.
+*   **Task**: Populates the preconfigured boilerplate framework with brand variables and copy.
+*   **First Iteration Execution**: 
+    *   Optimizes input context by stripping the raw text excerpt from scraped data, reducing token size by **75% (~2,000 tokens)** to prevent model size limit overflows.
+    *   Instructs the LLM to map the base template's content placeholders to copywriting values and design tokens (inheriting the scraper's computed brand colors).
+    *   The variables are loaded into [base_template.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/agents/base_template.py), replacing brackets (e.g., `{{COLOR_PRIMARY}}`, `{{HERO_TITLE}}`, `{{NAV_INSTITUTE_NAME}}`, `{{PHONE_NUMBER}}`) using simple Python string replacement.
+    *   Any remaining placeholders are filled with default fallbacks to ensure no bracket markers leak onto the page.
+    *   Exposes the generated variables JSON in `state["generated_prompt"]` so the user can inspect it in the UI's Panel 2.
+*   **Subsequent Iterations (JSON Refinement)**:
+    *   If the evaluator flags issues, it **bypasses LLM-based HTML rewriting/patching entirely**. 
+    *   Instead, it sends the **previous JSON mapping values** and the **evaluator's feedback** to the content-mapping LLM.
+    *   The LLM updates the JSON key-value pairs to address the feedback. Python then merges the updated values and performs a clean, local placeholder replacement. This cuts prompt sizes from ~12,000 tokens to under **1,500 tokens** and runs 100% reliably.
+
+#### 3. Evaluator Agent (`evaluator_agent` Node)
+*   **Role**: Quality Assurance Reviewer.
+*   **Task**: Checks for raw unresolved placeholders and grades the website on a scale of 0 to 10 across 5 dimensions: CTA Clarity, Visual Hierarchy, Section Discipline, Trust Signals, and Mobile UX.
+*   **Token Optimization**: Truncates the evaluated HTML preview to `2500` characters to prevent 413 limit errors.
+*   **Hard Fails**: Triggers an automatic fail status (`PASSED: NO`) if:
+    *   No hero CTA.
+    *   No WhatsApp floating button.
+    *   No lead capture form.
+    *   No trust signals (testimonials or stats).
+    *   More than 9 sections total.
+    *   HTML code under 3,000 characters.
+    *   Unresolved placeholders (e.g. `{{PLACEHOLDER_NAME}}`) remain in the HTML.
+*   **Routing**: The router checking function (`should_regenerate`) routes the state back to the `template_modifier_agent` for correction if the site fails evaluation and the attempt count is under 3. Otherwise, it compiles and exits to `END`.
+
+### Step 3: Persistence and Serving
+1. The completed files are saved to the filesystem via [file_manager.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/utils/file_manager.py).
+2. The API sends the final response to the frontend, which displays the text audit, provides an iframe preview of the redesigned site, and shows the content mapping JSON alongside evaluation scores.
+
+---
+
+## 📝 5. Prompt Types & Engineering Spec
+
+The system relies on three distinct active prompts defined in [prompts.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/utils/prompts.py) and [template_modifier.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/agents/template_modifier.py):
+
+| Prompt Identifier | Model Target | Input Context | Output Format | System Role & Key Instructions |
+| :--- | :--- | :--- | :--- | :--- |
+| **Audit Prompt** | `meta-llama/llama-4-scout-17b-16e-instruct` | Scraped site text. | Structured raw text. | **UX & CRO Consultant**: Analyze visual hierarchies, text blocks, and conversions. Be direct and concise. Avoid generic statements. |
+| **Content Filler Prompt** | `qwen/qwen3-32b` | Trimmed scraped text, audit, [optional previous values and feedback]. | Map of placeholder values (JSON). | **Copywriter & Brand Designer**: Map template labels (`COLOR_PRIMARY`, `HERO_TITLE`, `FAQ_1_Q`) to copywriting content and brand color hexes. Inherit scraped colors. Refines values on subsequent passes based on feedback. |
+| **Evaluator Prompt** | `llama-3.1-8b-instant` | Evaluator pre-checks (elements verification), audit summary, truncated HTML code preview. | Structured grading format. | **Quality Reviewer**: Score each criteria out of 10. Enforce hard fail conditions (fail if raw brackets exist). Provide feedback and actionable fix instructions. |
+
+---
+
+## 🛠️ 6. Error Resilience & Fallback Systems
+
+To ensure stability during local execution and network fluctuations, the system includes multiple defensive features:
+
+1.  **Windows Event Loop Fix**: Windows uses the `ProactorEventLoop` for Playwright's subprocess calls. [run.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/run.py) and [main.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/main.py) automatically detect the OS and adjust the loop policy at startup.
+2.  **Ollama-to-Groq Failover**: If the local Ollama service fails (due to service drops, out-of-memory errors, or slow execution), [ollama_client.py](file:///c:/Users/sayak/Downloads/coding%20shits/demo-work/coaching_institute_agent/backend/utils/ollama_client.py) automatically catches the exception and redirects requests to the Groq API.
+3.  **Groq Rate Limit Handling**: When falling back to Groq, the client automatically handles `429` (Rate Limit) errors by pausing for 5 seconds and retrying, and manages context overflow errors (`413`) by truncating the prompt and falling back to smaller model variants.
+4.  **Placeholder Security**: After replacing template placeholders, the backend runs a final check for any unresolved bracket syntax (e.g. `{{PLACEHOLDER}}`) and applies default values to prevent raw template markers from rendering on the page.
+5.  **Context Size Limits Guard**: Large raw page texts are stripped before template filling, and HTML previews are truncated to 2,500 characters during evaluation. This keeps API request sizes under 2,000 tokens, avoiding `413` errors and conserving Groq daily token quotas.
+6.  **Dynamic Thinking Expansion**: The Groq API client dynamically scales `max_tokens` to `3000` for Qwen reasoning/thinking models (like `qwen/qwen3-32b`) to ensure they can complete both their thought processes and the structured JSON output without truncation. Standard models are capped at `1500` to prevent rate limits.

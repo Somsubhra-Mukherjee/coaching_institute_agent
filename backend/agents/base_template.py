@@ -754,6 +754,9 @@ input,select,textarea{font-family:inherit;outline:none}
   .hero-stat-num{font-size:22px}
   .form-card{padding:24px 16px}
 }
+
+/* Custom Style Overrides from LLM */
+{{CUSTOM_STYLE_OVERRIDES}}
 </style>
 </head>
 <body>
@@ -1349,6 +1352,7 @@ TEMPLATE_PLACEHOLDERS = [
     "FOOTER_ABOUT", "FOOTER_ADDRESS", "FOOTER_COPYRIGHT",
     "FOOTER_COURSE_LINKS",
     "SOCIAL_FACEBOOK", "SOCIAL_INSTAGRAM", "SOCIAL_YOUTUBE",
+    "CUSTOM_STYLE_OVERRIDES"
 ]
 
 

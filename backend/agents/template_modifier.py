@@ -1,6 +1,6 @@
 import json
 import re
-from backend.utils.ollama_client import call_audit_model
+from backend.utils.ollama_client import call_redesign_model
 from backend.agents.base_template import (
     get_base_template,
     get_all_placeholders,
@@ -11,112 +11,80 @@ from backend.agents.base_template import (
 def build_filler_prompt(
     website_data: str,
     audit: str,
-    generated_prompt: str,
-    ui_system: dict
+    previous_values: dict = None,
+    feedback: str = ""
 ) -> str:
 
-    colors  = ui_system.get("colors", {})
-    typo    = ui_system.get("typography", {})
-    sections = ui_system.get("sections", [])
-
-    primary       = colors.get("primary",       "#1a237e")
-    primary_dark  = colors.get("primary_dark",  "#0d1257")
-    primary_light = colors.get("primary_light", "#e8eaf6")
-    accent        = colors.get("accent",        "#e53935")
-    accent_light  = colors.get("accent_light",  "#ffebee")
-    text_dark     = colors.get("text_dark",     "#1a1a2e")
-    text_body     = colors.get("text_body",     "#374151")
-    text_muted    = colors.get("text_muted",    "#6b7280")
-    bg_light      = colors.get("bg_light",      "#f8fafc")
-    bg_section    = colors.get("bg_section",    "#f1f5f9")
-    border        = colors.get("border",        "#e5e7eb")
-
-    fonts_import  = typo.get("google_fonts_import",
-        "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');")
-    font_heading  = typo.get("font_family_heading", "Inter, sans-serif")
-    font_body     = typo.get("font_family_body",    "Inter, sans-serif")
+    # Strip the raw text excerpt to save tokens and prevent request size limits
+    clean_data = website_data
+    if "--- RAW PAGE TEXT (excerpt) ---" in website_data:
+        clean_data = website_data.split("--- RAW PAGE TEXT (excerpt) ---")[0]
 
     placeholders_list = "\n".join([f"  - {{{{{p}}}}}" for p in TEMPLATE_PLACEHOLDERS])
 
-    return f"""
-You are filling in a premium HTML template for an Indian coaching institute website.
+    base_prompt = f"""You are a premium CRO copywriter and brand designer filling in placeholders inside a high-converting coaching institute landing page.
 
-WEBSITE DATA (scraped content — use this as your primary source):
-{website_data}
+WEBSITE DATA (scraped content — use this as your primary source of facts):
+{clean_data}
 
 AUDIT FINDINGS:
-{audit[:600]}
+{audit[:1000]}
+"""
 
-DESIGN BRIEF:
-{generated_prompt[:800]}
+    if previous_values and feedback:
+        refinement_part = f"""
+We already generated an initial set of placeholder values, but the evaluator rejected them with the following feedback:
 
-UI SYSTEM COLORS:
-  Primary:       {primary}
-  Primary Dark:  {primary_dark}
-  Primary Light: {primary_light}
-  Accent:        {accent}
-  Accent Light:  {accent_light}
-  Text Dark:     {text_dark}
-  Text Body:     {text_body}
-  Text Muted:    {text_muted}
-  Bg Light:      {bg_light}
-  Bg Section:    {bg_section}
-  Border:        {border}
+EVALUATOR FEEDBACK / ISSUES:
+{feedback}
 
-FONTS:
-  Google Fonts Import: {fonts_import}
-  Heading Font: {font_heading}
-  Body Font:    {font_body}
+PREVIOUS GENERATED VALUES:
+{json.dumps(previous_values, indent=2)}
 
 YOUR TASK:
-Output a single JSON object that maps every placeholder key to its replacement value.
-Extract real values from the website data wherever possible.
-Use realistic, specific content — never generic filler.
+Review the evaluator feedback and the previous values, then output a corrected/refined JSON object mapping. 
+You must address the evaluator's feedback (e.g. adjust copy length, fix missing information, correct colors, or provide values for missing keys).
+Output the complete corrected mapping for all keys.
+"""
+    else:
+        refinement_part = f"""
+YOUR TASK:
+Output a single JSON object that maps every placeholder key in the list below to its appropriate replacement value.
+Select a premium brand color palette and typography that suits the coaching niche. 
 
-PLACEHOLDER KEYS TO FILL:
-{placeholders_list}
+BRANDING & STYLE REQUIREMENTS:
+1. COLOR_PRIMARY: Main brand color. If a "DETECTED PRIMARY COLOR" is specified in the website data above, you MUST use that hex color (or a very close premium equivalent).
+2. COLOR_PRIMARY_DARK: A darker shade of the primary color (for hovers/active states).
+3. COLOR_PRIMARY_LIGHT: A very light pastel/background version of the primary color.
+4. COLOR_ACCENT: A vibrant, high-contrast accent color (e.g. orange, gold, teal, or yellow).
+5. COLOR_ACCENT_LIGHT: A very light pastel version of the accent color.
+6. GOOGLE_FONTS_IMPORT: Import clean, premium Google Fonts (e.g. Outfit, Inter, Syne, Cabinet Grotesk, Roboto) using a CSS @import statement.
+7. FONT_HEADING & FONT_BODY: The font-family names mapping to the imported fonts (e.g. "'Outfit', sans-serif").
+8. CUSTOM_STYLE_OVERRIDES: Optional custom CSS rules to refine the design (e.g., custom border accents, hover shadows, form focus outlines). Output ONLY clean CSS inside this value, no style tags.
 
-RULES:
-1. Extract REAL institute name, courses, phone, address from website data
-2. For courses: only include courses actually mentioned in website data
-   - If only 1-2 courses exist, still fill all 3 course slots but make course 2/3 variants
-   - COURSE_X_LEVELS: output as HTML like:
-     <span class="course-level-tag">Foundation</span><span class="course-level-tag">Intermediate</span>
-   - COURSE_X_SUBJECTS: output as HTML like:
-     <li>Accounting</li><li>Economics</li><li>Law</li>
-3. FORM_COURSE_OPTIONS: output as HTML like:
-   <option value="ca">CA Course</option><option value="cma">CMA Course</option>
-4. FOOTER_COURSE_LINKS: output as HTML like:
-   <li><a href="#courses">CA Course</a></li><li><a href="#courses">CMA Course</a></li>
-5. NAV_LOGO_LETTER: first letter of institute name only
-6. PHONE_NUMBER: extract from website data, use "+91 98765 43210" if not found
-7. WHATSAPP_LINK: format as https://wa.me/91XXXXXXXXXX
-8. EMAIL_ADDRESS: extract from website or use info@institutename.com
-9. WEBSITE_URL: use the actual URL from website data
-10. TESTIMONIALS: write realistic, specific testimonials for this institute's courses
-11. STATS: use real numbers if available, otherwise realistic ones (e.g. "5000+", "15+", "98%")
-12. FAQs: write questions specifically relevant to this institute's courses and location
-13. All color values: use the exact hex codes from UI SYSTEM COLORS above
-14. GOOGLE_FONTS_IMPORT: use exactly: {fonts_import}
-15. FONT_HEADING and FONT_BODY: use exactly: {font_heading} and {font_body}
+COLOR HARMONY WARNING: Avoid generic, un-premium raw colors like pure red (#ff0000), pure blue (#0000ff), or raw primary colors. Select a highly harmonized, modern premium palette (e.g., if primary is a yellow/gold color, choose a deep slate, charcoal, or elegant teal accent color, not raw red). Use clean HSL-tailored colors.
 
 CONVERSION COPY RULES:
-- HERO_TITLE: strong, benefit-focused, mentions course names
-- HERO_TITLE_HIGHLIGHT: the most important word or phrase (will be colored)
-- HERO_SUBTITLE: 1-2 lines, result-focused, mention location if available
-- CTA_PRIMARY: action phrase like "Book Free Counselling" or "Start Your Journey"
-- CTA_SECONDARY: "Explore Courses" or "View Programs"
-- FORM_CTA: "Get Free Career Guidance" or "Book My Free Session"
-- FORM_NOTE: "Your information is 100% private. No spam."
-- FORM_SUCCESS_TITLE: "We'll Call You Soon!"
-- FORM_SUCCESS_MSG: "Our counsellor will contact you within 24 hours."
+- Use real information (institute name, courses, phone, address) found on the website.
+- Never invent numbers or statistics. If student counts or success rates are missing, use feature highlights (e.g. STAT_1_NUM="Expert" STAT_1_LABEL="IITian Faculty", STAT_2_NUM="Live" STAT_2_LABEL="Doubt Support").
+- Keep hero headline (HERO_TITLE) under 12 words and subheadline (HERO_SUBTITLE) under 30 words.
+- Benefits (TRUST_X_DESC) should be concise (under 12 words).
+- FAQs should have clear, direct answers under 25 words.
+- All course outcome fields must highlight career prospects (e.g. "Prepare for IIT JEE & NEET - Open doors to Top Engineering & Medical colleges").
 
-OUTPUT ONLY A VALID JSON OBJECT.
-No explanation. No markdown fences. No extra text.
-Start with {{ and end with }}
-Every key must be a string from the placeholder list above.
-Every value must be a non-empty string.
+REQUIRED PLACEHOLDER KEYS:
+{placeholders_list}
 """
+
+    footer_part = """
+Output ONLY valid JSON.
+No explanation. No markdown fences. No extra text.
+Start with { and end with }
+Every single key must be mapped to a valid, non-empty string value (e.g. "KEY": "VALUE").
+Ensure there are no missing colons, values, or trailing commas at the end of the JSON object.
+"""
+
+    return base_prompt + refinement_part + footer_part
 
 
 def fill_template_with_values(template: str, values: dict) -> str:
@@ -168,14 +136,14 @@ def fill_remaining_placeholders(html: str) -> str:
         "HERO_SUBTITLE":      "Join India's most result-oriented coaching institute.",
         "CTA_PRIMARY":        "Book Free Counselling",
         "CTA_SECONDARY":      "Explore Courses",
-        "STAT_1_NUM":         "5000+",
-        "STAT_1_LABEL":       "Students Trained",
-        "STAT_2_NUM":         "15+",
-        "STAT_2_LABEL":       "Years Experience",
-        "STAT_3_NUM":         "98%",
-        "STAT_3_LABEL":       "Pass Rate",
-        "STAT_4_NUM":         "4.8★",
-        "STAT_4_LABEL":       "Google Rating",
+        "STAT_1_NUM":         "Daily",
+        "STAT_1_LABEL":       "Practice Tests",
+        "STAT_2_NUM":         "Live",
+        "STAT_2_LABEL":       "Doubt Support",
+        "STAT_3_NUM":         "Expert",
+        "STAT_3_LABEL":       "Faculty Team",
+        "STAT_4_NUM":         "100%",
+        "STAT_4_LABEL":       "Syllabus Coverage",
         "BADGE_TITLE":        "Top Ranked Institute",
         "BADGE_SUBTITLE":     "Consistently producing rank holders",
         "TRUST_HEADING":      "Why Students Choose Us",
@@ -211,14 +179,14 @@ def fill_remaining_placeholders(html: str) -> str:
         "COURSE_3_OUTCOME":   "Company Secretary — Corporate Governance",
         "RESULTS_HEADING":    "Our Results Speak for Themselves",
         "RESULTS_SUBHEADING": "Consistent results year after year.",
-        "RESULT_1_NUM":       "5000+",
-        "RESULT_1_LABEL":     "Students Trained",
-        "RESULT_2_NUM":       "500+",
-        "RESULT_2_LABEL":     "Rank Holders",
-        "RESULT_3_NUM":       "98%",
-        "RESULT_3_LABEL":     "Pass Rate",
-        "RESULT_4_NUM":       "15+",
-        "RESULT_4_LABEL":     "Years of Excellence",
+        "RESULT_1_NUM":       "Concept",
+        "RESULT_1_LABEL":     "Clarity First",
+        "RESULT_2_NUM":       "Regular",
+        "RESULT_2_LABEL":     "Assessments",
+        "RESULT_3_NUM":       "Personal",
+        "RESULT_3_LABEL":     "Attention",
+        "RESULT_4_NUM":       "Proven",
+        "RESULT_4_LABEL":     "Study Methods",
         "TESTIMONIAL_1_TEXT": "The faculty here is exceptional. I cleared my CA Final in the first attempt thanks to their structured approach.",
         "TESTIMONIAL_1_INITIAL":"R",
         "TESTIMONIAL_1_NAME": "Rahul Sharma",
@@ -261,6 +229,7 @@ def fill_remaining_placeholders(html: str) -> str:
         "SOCIAL_FACEBOOK":    "#",
         "SOCIAL_INSTAGRAM":   "#",
         "SOCIAL_YOUTUBE":     "#",
+        "CUSTOM_STYLE_OVERRIDES": "/* No custom overrides */",
     }
 
     for key in remaining:
@@ -273,20 +242,35 @@ def fill_remaining_placeholders(html: str) -> str:
 
 
 def parse_filler_json(response: str) -> dict:
-    """Extract JSON from model response safely."""
+    """Extract JSON from model response safely, falling back to robust regex parsing if needed."""
     # Direct parse
     try:
         return json.loads(response.strip())
     except Exception:
         pass
 
-    # Extract JSON block
+    # Extract JSON block and try to load it
     try:
         match = re.search(r'\{[\s\S]*\}', response, re.DOTALL)
         if match:
             return json.loads(match.group(0))
     except Exception:
         pass
+
+    # Regex recovery fallback for flat JSON keys
+    try:
+        parsed = {}
+        # Find all patterns like "KEY" : "VALUE" (handling escaped quotes and newlines within values)
+        # Matches uppercase keys and their string values
+        matches = re.findall(r'"([A-Z_0-9]+)"\s*:\s*"((?:[^"\\]|\\.)*)"', response)
+        for k, v in matches:
+            # Unescape quotes/slashes
+            parsed[k] = v.replace('\\"', '"').replace('\\\\', '\\')
+        if len(parsed) > 10:
+            print(f"[TEMPLATE MODIFIER] Successfully recovered {len(parsed)} keys using regex parser fallback!")
+            return parsed
+    except Exception as e:
+        print(f"[TEMPLATE MODIFIER] Regex recovery failed: {e}")
 
     print("[TEMPLATE MODIFIER] JSON parse failed — using defaults only")
     return {}
@@ -295,26 +279,35 @@ def parse_filler_json(response: str) -> dict:
 def run_template_modifier(
     website_data: str,
     audit: str,
-    generated_prompt: str,
-    ui_system: dict
-) -> str:
+    previous_values: dict = None,
+    feedback: str = ""
+) -> tuple:
     """
     Main entry point.
     Fills the base template with AI-generated content values.
-    Returns complete filled HTML.
+    Returns complete filled HTML and the values dict.
     """
     print("\n[TEMPLATE MODIFIER] Generating content values...")
 
     try:
-        prompt = build_filler_prompt(website_data, audit, generated_prompt, ui_system)
+        prompt = build_filler_prompt(website_data, audit, previous_values, feedback)
         system = (
             "You are a content specialist for Indian coaching institute websites. "
             "Output ONLY a valid JSON object. "
             "No markdown. No explanation. Just JSON."
         )
 
-        response = call_audit_model(prompt, system)
+        response = call_redesign_model(prompt, system)
+        import sys
+        enc = sys.stdout.encoding or 'utf-8'
+        print(f"[TEMPLATE MODIFIER] Model raw response (preview):\n{response[:500]}...".encode(enc, errors='replace').decode(enc))
         values   = parse_filler_json(response)
+
+        # Merge previous values with new values so we don't lose any keys
+        if previous_values:
+            merged = previous_values.copy()
+            merged.update(values)
+            values = merged
 
         print(f"[TEMPLATE MODIFIER] Got {len(values)} values from model")
 
@@ -331,9 +324,9 @@ def run_template_modifier(
             print(f"[TEMPLATE MODIFIER] Warning: {len(remaining)} placeholders still unfilled: {remaining[:5]}")
 
         print(f"[TEMPLATE MODIFIER] Done. HTML size: {len(html)} chars")
-        return html
+        return html, values
 
     except Exception as e:
         print(f"[TEMPLATE MODIFIER] ERROR: {e} — returning default-filled template")
         template = get_base_template()
-        return fill_remaining_placeholders(template)
+        return fill_remaining_placeholders(template), {}

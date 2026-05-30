@@ -24,7 +24,8 @@ from backend.utils.file_manager import (
     save_redesign,
     save_metadata,
     list_previous_runs,
-    read_file
+    read_file,
+    save_site_text
 )
 
 
@@ -184,6 +185,7 @@ async def run_audit(request: AuditRequest):
 
         audit_path = save_audit(final_state["audit"], slug)
         redesign_path = save_redesign(final_state["html_code"], slug)
+        sitetext_path = save_site_text(scraped_data, slug)
 
         # Save metadata for history
         metadata = {
@@ -196,6 +198,7 @@ async def run_audit(request: AuditRequest):
             "iterations": final_state["iteration"],
             "audit_file": audit_path,
             "redesign_file": redesign_path,
+            "site_text_file": sitetext_path,
             "screenshot_file": scraped_data["screenshot_path"],
             "status": final_state["status"],
             "error": final_state.get("error", "")

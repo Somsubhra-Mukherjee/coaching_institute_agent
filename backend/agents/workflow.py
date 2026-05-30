@@ -732,16 +732,13 @@ import json
 from typing import TypedDict
 from langgraph.graph import StateGraph, END
 
-from backend.utils.ollama_client  import call_audit_model
+from backend.utils.ollama_client  import call_audit_model, call_evaluator_model
 from backend.utils.prompts        import (
     get_audit_prompt,
     get_evaluator_prompt,
     get_redesign_improvement_prompt
 )
-from backend.agents.prompt_generator  import run_prompt_generator
-from backend.agents.ui_system_agent   import run_ui_system_agent
 from backend.agents.template_modifier import run_template_modifier
-from backend.agents.html_refiner      import run_html_refiner
 
 
 # ── State ─────────────────────────────────────────────────────────────────────
@@ -752,10 +749,8 @@ class AgentState(TypedDict):
     screenshot_path:   str
 
     audit:             str
-    generated_prompt:  str
-    ui_system:         dict
+    generated_prompt:  str  # Storing content mapping JSON string here for display
     html_code:         str
-    refined_html:      str
 
     eval_score:           float
     eval_score_cta:       int
@@ -849,68 +844,27 @@ def audit_agent(state: AgentState) -> AgentState:
     return state
 
 
-def prompt_generator_agent(state: AgentState) -> AgentState:
-    print("\n[PROMPT GENERATOR] Running...")
-    state["status"] = "Generating redesign strategy prompt..."
-    try:
-        generated = run_prompt_generator(
-            url=state["url"],
-            website_data=state["website_data"],
-            audit=state["audit"],
-            screenshot_path=state.get("screenshot_path", "")
-        )
-        state["generated_prompt"] = generated
-        state["status"] = "Strategy prompt generated"
-        print(f"[PROMPT GENERATOR] Done. {len(generated)} chars")
-    except Exception as e:
-        state["error"]            = f"Prompt generator error: {e}"
-        state["generated_prompt"] = ""
-        state["status"]           = "Prompt generation failed"
-        print(f"[PROMPT GENERATOR] ERROR: {e}")
-    return state
-
-
-def ui_system_agent(state: AgentState) -> AgentState:
-    print("\n[UI SYSTEM AGENT] Running...")
-    state["status"] = "Building UI system specification..."
-    try:
-        ui_system = run_ui_system_agent(
-            generated_prompt=state["generated_prompt"],
-            audit=state["audit"]
-        )
-        state["ui_system"] = ui_system
-        state["status"]    = "UI system ready"
-        print(f"[UI SYSTEM AGENT] Done. {len(ui_system.get('sections',[]))} sections")
-    except Exception as e:
-        state["error"]     = f"UI system error: {e}"
-        state["ui_system"] = {}
-        state["status"]    = "UI system failed — using defaults"
-        print(f"[UI SYSTEM AGENT] ERROR: {e}")
-    return state
-
-
 def template_modifier_agent(state: AgentState) -> AgentState:
     print(f"\n[TEMPLATE MODIFIER] Iteration {state['iteration'] + 1}...")
     state["status"] = f"Filling template with content (attempt {state['iteration'] + 1})..."
 
     try:
-        if state["iteration"] == 0:
-            # First pass — fill template from scratch
-            html = run_template_modifier(
-                website_data=state["website_data"],
-                audit=state["audit"],
-                generated_prompt=state["generated_prompt"],
-                ui_system=state.get("ui_system", {})
-            )
-        else:
-            # Subsequent passes — patch based on evaluator feedback
-            print("[TEMPLATE MODIFIER] Applying evaluator patches...")
-            html = apply_evaluator_patches(
-                html_code=state["html_code"],
-                feedback=state["eval_feedback"],
-                ui_system=state.get("ui_system", {})
-            )
+        previous_values = None
+        if state["iteration"] > 0 and state.get("generated_prompt"):
+            try:
+                previous_values = json.loads(state["generated_prompt"])
+            except Exception as e:
+                print(f"[TEMPLATE MODIFIER] Error parsing previous values: {e}")
 
+        # Run template modifier (either initial or with feedback refinement)
+        html, values_dict = run_template_modifier(
+            website_data=state["website_data"],
+            audit=state["audit"],
+            previous_values=previous_values,
+            feedback=state.get("eval_feedback", "")
+        )
+
+        state["generated_prompt"] = json.dumps(values_dict, indent=2)
         state["html_code"]  = html
         state["iteration"]  = state["iteration"] + 1
         state["status"]     = f"Template filled (attempt {state['iteration']})"
@@ -924,84 +878,18 @@ def template_modifier_agent(state: AgentState) -> AgentState:
     return state
 
 
-def apply_evaluator_patches(
-    html_code: str,
-    feedback: str,
-    ui_system: dict
-) -> str:
-    """
-    Apply targeted patches based on evaluator feedback.
-    Used on iteration 2+ instead of full regeneration.
-    """
-    from backend.utils.ollama_client import call_redesign_model
+# No longer using apply_evaluator_patches with an LLM on the entire HTML code.
+# The template is filled deterministically via Python placeholder replacement using refined JSON values.
 
-    colors  = ui_system.get("colors", {})
-    primary = colors.get("primary", "#1a237e")
-    accent  = colors.get("accent",  "#e53935")
-
-    prompt = f"""
-You are patching an existing coaching institute HTML page.
-Apply ONLY the specific fixes listed below. Do not change anything else.
-
-EVALUATOR FEEDBACK TO FIX:
-{feedback}
-
-CURRENT HTML:
-{html_code}
-
-RULES:
-- Fix only what the evaluator flagged
-- Preserve all existing CSS classes and IDs
-- Preserve all content not mentioned in feedback
-- Ensure WhatsApp button exists with class "whatsapp-float"
-- Ensure hero section has a .btn-primary button
-- Ensure #lead-form section with form fields exists
-- Primary color: {primary}
-- Accent color: {accent}
-
-Output the complete fixed HTML.
-Start with <!DOCTYPE html>. End with </html>.
-"""
-    system = "Fix only the specified issues. Output complete HTML."
-
-    try:
-        response = call_redesign_model(prompt, system)
-        patched  = extract_html(response)
-        if len(patched) < len(html_code) * 0.8:
-            return html_code
-        return patched
-    except Exception as e:
-        print(f"[PATCH] Error: {e}")
-        return html_code
-
-
-def html_refiner_agent(state: AgentState) -> AgentState:
-    print(f"\n[HTML REFINER] Running on iteration {state['iteration']}...")
-    state["status"] = "Refining and polishing HTML..."
-    try:
-        refined = run_html_refiner(
-            html_code=state["html_code"],
-            ui_system=state.get("ui_system", {})
-        )
-        state["refined_html"] = refined
-        state["html_code"]    = refined
-        state["status"]       = "HTML refinement complete"
-    except Exception as e:
-        state["error"]        = f"Refiner error: {e}"
-        state["refined_html"] = state["html_code"]
-        state["status"]       = "HTML refinement failed — using original"
-        print(f"[HTML REFINER] ERROR: {e}")
-    return state
 
 
 def evaluator_agent(state: AgentState) -> AgentState:
     print(f"\n[EVALUATOR] Evaluating iteration {state['iteration']}...")
     state["status"] = "Evaluating quality..."
     try:
-        prompt   = get_evaluator_prompt(
-            state["html_code"], state["audit"], state.get("ui_system", {}))
+        prompt   = get_evaluator_prompt(state["html_code"], state["audit"])
         system   = "Strict quality evaluator. Follow the format exactly."
-        response = call_audit_model(prompt, system)
+        response = call_evaluator_model(prompt, system)
         parsed   = parse_evaluator_response(response)
 
         state["eval_score"]            = parsed["score"]
@@ -1059,18 +947,12 @@ def build_workflow():
     graph = StateGraph(AgentState)
 
     graph.add_node("audit_agent",             audit_agent)
-    graph.add_node("prompt_generator_agent",  prompt_generator_agent)
-    graph.add_node("ui_system_agent",         ui_system_agent)
     graph.add_node("template_modifier_agent", template_modifier_agent)
-    graph.add_node("html_refiner_agent",      html_refiner_agent)
     graph.add_node("evaluator_agent",         evaluator_agent)
 
     graph.set_entry_point("audit_agent")
-    graph.add_edge("audit_agent",             "prompt_generator_agent")
-    graph.add_edge("prompt_generator_agent",  "ui_system_agent")
-    graph.add_edge("ui_system_agent",         "template_modifier_agent")
-    graph.add_edge("template_modifier_agent", "html_refiner_agent")
-    graph.add_edge("html_refiner_agent",      "evaluator_agent")
+    graph.add_edge("audit_agent",             "template_modifier_agent")
+    graph.add_edge("template_modifier_agent", "evaluator_agent")
 
     graph.add_conditional_edges(
         "evaluator_agent",
@@ -1094,9 +976,7 @@ def create_initial_state(
         screenshot_path=screenshot_path,
         audit="",
         generated_prompt="",
-        ui_system={},
         html_code="",
-        refined_html="",
         eval_score=0.0,
         eval_score_cta=0,
         eval_score_hierarchy=0,

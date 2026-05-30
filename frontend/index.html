@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Coaching Institute Audit Agent</title>
+  <title>KGP Hustle House Website Auditor</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
   <style>
     *,
     *::before,
@@ -667,13 +668,13 @@
   <!-- ── Header ────────────────────────────────────────────────── -->
   <header>
     <div class="logo">
-      <div class="logo-icon">🎯</div>
-      <h1>Coaching <span>Audit</span> Agent</h1>
+      <div class="logo-icon">🚀</div>
+      <h1>KGP Hustle House <span>Website Auditor</span></h1>
     </div>
     <div class="header-right">
       <span class="header-badge">🔒 100% Local</span>
       <span class="header-badge">🤖 Ollama Powered</span>
-      <span class="header-badge" id="agentCountBadge">4 Agents Active</span>
+      <span class="header-badge" id="agentCountBadge">3 Agents Active</span>
     </div>
   </header>
 
@@ -703,10 +704,9 @@
     <div class="steps-row">
       <span class="step-pill" id="step1">🌐 Scraping</span>
       <span class="step-pill" id="step2">📋 Audit Agent</span>
-      <span class="step-pill" id="step3">🧠 Prompt Agent</span>
-      <span class="step-pill" id="step4">🎨 Redesign Agent</span>
-      <span class="step-pill" id="step5">✅ Evaluator Agent</span>
-      <span class="step-pill" id="step6">💾 Saving</span>
+      <span class="step-pill" id="step3">✍️ Content Mapper</span>
+      <span class="step-pill" id="step4">✅ Evaluator Agent</span>
+      <span class="step-pill" id="step5">💾 Saving</span>
     </div>
   </div>
 
@@ -723,7 +723,7 @@
         <span class="tab-badge" id="tabBadgeAudit">—</span>
       </div>
       <div class="tab" onclick="switchTab('prompt')" id="tab-prompt">
-        🧠 Strategy Prompt
+        🧠 Content Mapping
         <span class="tab-badge" id="tabBadgePrompt">—</span>
       </div>
       <div class="tab" onclick="switchTab('preview')" id="tab-preview">
@@ -757,26 +757,26 @@
         </div>
       </div>
 
-      <!-- PANEL 2: Strategy Prompt -->
+      <!-- PANEL 2: Content Mapping -->
       <div class="panel" id="panelPrompt">
         <div class="panel-header">
           <div class="panel-title">
             <span class="dot" id="dotPrompt"></span>
-            AI Strategy Prompt
+            AI Content Mapping
           </div>
           <div class="panel-actions">
             <button class="btn btn-outline" id="copyPromptBtn" style="display:none" onclick="copyPrompt()">
-              📋 Copy
+              📋 Copy JSON
             </button>
           </div>
         </div>
         <div class="panel-body" id="promptPanel">
           <div class="empty-state">
             <div class="empty-icon">🧠</div>
-            <div class="empty-title">Strategy Prompt</div>
+            <div class="empty-title">Content Mapping JSON</div>
             <div class="empty-sub">
-              The AI-generated redesign brief will appear here.
-              This is what the redesign agent uses to build the HTML.
+              The AI-generated content mapping JSON will appear here.
+              This shows what variables were mapped into the landing page.
             </div>
           </div>
         </div>
@@ -819,6 +819,17 @@
     </div>
 
   </div><!-- end main-wrapper -->
+
+  <!-- Credits Footer -->
+  <footer style="background: var(--surface); border-top: 1px solid var(--border); padding: 12px 28px; text-align: center; font-size: 12px; color: var(--text-muted); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+    <div>Branded by <strong>KGP Hustle House</strong> &copy; 2026. All rights reserved.</div>
+    <div>
+      Credits: 
+      <a href="https://www.kgphustlehouse.com/talent/moon" target="_blank" style="color: var(--accent); text-decoration: underline; margin-right: 8px;">Moon</a> 
+      &amp; 
+      <a href="https://www.kgphustlehouse.com/talent/sun" target="_blank" style="color: var(--accent); text-decoration: underline; margin-left: 8px;">Sun</a>
+    </div>
+  </footer>
 
   <!-- Copy flash toast -->
   <div class="copy-flash" id="copyFlash"></div>
@@ -866,7 +877,7 @@
 
         // Mark all steps done
         setProgress(100, "All agents complete!");
-        ["step1", "step2", "step3", "step4", "step5", "step6"].forEach(s => setStep(s, "done"));
+        ["step1", "step2", "step3", "step4", "step5"].forEach(s => setStep(s, "done"));
 
         currentSlug = data.slug;
         currentAudit = data.audit;
@@ -957,17 +968,16 @@
 
       panel.innerHTML = `
       <div class="prompt-meta">
-        <span class="prompt-tag orange">🧠 AI Generated Brief</span>
-        <span class="prompt-tag">${wordCount} words</span>
+        <span class="prompt-tag orange">🧠 AI Content Mapping JSON</span>
         <span class="prompt-tag">${charCount} chars</span>
-        <span class="prompt-tag">Used by Redesign Agent →</span>
+        <span class="prompt-tag">Mapped into Template placeholders →</span>
       </div>
       <div class="prompt-content">${escapeHtml(promptText)}</div>
     `;
 
       document.getElementById("copyPromptBtn").style.display = "flex";
       document.getElementById("dotPrompt").classList.add("orange");
-      document.getElementById("tabBadgePrompt").textContent = wordCount + "w";
+      document.getElementById("tabBadgePrompt").textContent = "JSON";
     }
 
 
@@ -1164,16 +1174,14 @@
     function simulateSteps() {
       const phases = [
         ["step1", "active", 10, "Playwright scraping website..."],
-        ["step1", "done", 22, "Content + screenshot captured"],
-        ["step2", "active", 32, "Audit agent analyzing problems..."],
-        ["step2", "done", 44, "Audit report written"],
-        ["step3", "active", 54, "Prompt agent building design brief..."],
-        ["step3", "done", 65, "Strategy prompt generated"],
-        ["step4", "active", 74, "Redesign agent generating HTML..."],
-        ["step4", "done", 85, "HTML redesign complete"],
-        ["step5", "active", 90, "Evaluator scoring quality..."],
-        ["step5", "done", 95, "Evaluation done"],
-        ["step6", "active", 97, "Saving files to disk..."],
+        ["step1", "done", 25, "Content + screenshot captured"],
+        ["step2", "active", 40, "Audit agent analyzing problems..."],
+        ["step2", "done", 60, "Audit report written"],
+        ["step3", "active", 75, "Content mapper filling template placeholders..."],
+        ["step3", "done", 85, "Template content generated"],
+        ["step4", "active", 90, "Evaluator scoring quality..."],
+        ["step4", "done", 95, "Evaluation complete"],
+        ["step5", "active", 98, "Saving files to disk..."],
       ];
 
       let i = 0;
@@ -1184,7 +1192,7 @@
           setProgress(pct, status);
           i++;
         }
-      }, 9000);
+      }, 5500);
     }
 
 
