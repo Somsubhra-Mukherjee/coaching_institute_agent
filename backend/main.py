@@ -46,10 +46,15 @@ app.add_middleware(
 )
 
 # Serve outputs folder as static files (for screenshots etc)
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+import os
+from backend.utils.file_manager import BASE_OUTPUT_DIR
+outputs_dir = str(BASE_OUTPUT_DIR)
+os.makedirs(outputs_dir, exist_ok=True)
+app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
 
 # Serve frontend folder
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+frontend_dir = str(Path(__file__).resolve().parent.parent / "frontend")
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 
 # ── Request/Response models ─────────────────────────────────────────────────
@@ -115,7 +120,7 @@ async def startup_event():
 @app.get("/")
 async def root():
     """Serve the frontend index.html"""
-    return FileResponse("frontend/index.html")
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
 
 
 @app.get("/health")

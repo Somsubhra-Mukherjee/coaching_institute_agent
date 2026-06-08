@@ -6,7 +6,11 @@ from slugify import slugify
 
 
 # ── Output directories ──────────────────────────────────────────────────────
-BASE_OUTPUT_DIR = Path("outputs")
+if os.getenv("VERCEL"):
+    BASE_OUTPUT_DIR = Path("/tmp/outputs")
+else:
+    BASE_OUTPUT_DIR = Path("outputs")
+
 AUDITS_DIR = BASE_OUTPUT_DIR / "audits"
 REDESIGNS_DIR = BASE_OUTPUT_DIR / "redesigns"
 SCREENSHOTS_DIR = BASE_OUTPUT_DIR / "screenshots"
