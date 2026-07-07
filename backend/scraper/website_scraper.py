@@ -4,7 +4,6 @@ import re
 import sys
 from pathlib import Path
 from datetime import datetime
-from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from slugify import slugify
 
@@ -79,6 +78,7 @@ async def scrape_website(url: str) -> dict:
 
     try:
         try:
+            from playwright.async_api import async_playwright
             async with async_playwright() as p:
 
                 print("[SCRAPER] Launching Chromium browser...")

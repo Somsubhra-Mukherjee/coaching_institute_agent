@@ -869,20 +869,55 @@
         clearInterval(stepTimer);
 
         if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.detail || "Server error");
+          // Safely parse error — server might return JSON or plain text
+          let errMsg = `Server error (HTTP ${response.status})`;
+          try {
+            const errBody = await response.text();
+            if (errBody) {
+              try {
+                const errJson = JSON.parse(errBody);
+                errMsg = errJson.detail || errJson.message || errMsg;
+              } catch {
+                errMsg = errBody.slice(0, 300) || errMsg;
+              }
+            }
+          } catch { /* ignore */ }
+          throw new Error(errMsg);
         }
 
-        const data = await response.json();
+        // Step 1: Parse lightweight metadata response (~2KB, no html_code/audit)
+        let meta;
+        try {
+          const rawText = await response.text();
+          meta = JSON.parse(rawText);
+        } catch (parseErr) {
+          throw new Error("Server returned invalid JSON. Check server logs.");
+        }
+
+        // Step 2: Fetch the full audit text + html_code from /history/{slug}
+        setProgress(97, "Fetching generated content...");
+        const histRes = await fetch(`/history/${meta.slug}`);
+        if (!histRes.ok) throw new Error("Failed to load audit results.");
+
+        let histData;
+        try {
+          const histText = await histRes.text();
+          histData = JSON.parse(histText);
+        } catch {
+          throw new Error("Failed to parse audit content.");
+        }
+
+        // Merge metadata + content
+        const data = { ...meta, ...histData };
 
         // Mark all steps done
         setProgress(100, "All agents complete!");
         ["step1", "step2", "step3", "step4", "step5"].forEach(s => setStep(s, "done"));
 
         currentSlug = data.slug;
-        currentAudit = data.audit;
+        currentAudit = data.audit || "";
         currentPrompt = data.generated_prompt || "";
-        currentHTML = data.html_code;
+        currentHTML = data.html_code || "";
 
         setTimeout(() => {
           renderAudit(data);

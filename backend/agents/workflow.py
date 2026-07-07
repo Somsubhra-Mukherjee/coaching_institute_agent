@@ -916,12 +916,19 @@ def evaluator_agent(state: AgentState) -> AgentState:
         print(f"[EVALUATOR] {state['status']}")
 
     except Exception as e:
-        state["eval_score"]    = 7.0
-        state["eval_passed"]   = True
-        state["eval_hard_fail"]= False
-        state["eval_feedback"] = ""
-        state["error"]         = f"Evaluator error (auto-passed): {e}"
-        state["status"]        = "Evaluator failed — auto passed"
+        state["eval_score"]           = 7.0
+        state["eval_score_cta"]       = 0
+        state["eval_score_hierarchy"] = 0
+        state["eval_score_sections"]  = 0
+        state["eval_score_trust"]     = 0
+        state["eval_score_mobile"]    = 0
+        state["eval_passed"]          = True
+        state["eval_hard_fail"]       = False
+        state["eval_hard_fail_reason"]= ""
+        state["eval_issues"]          = ""
+        state["eval_feedback"]        = ""
+        state["error"]                = f"Evaluator error (auto-passed): {e}"
+        state["status"]               = "Evaluator failed — auto passed"
         print(f"[EVALUATOR] ERROR (auto-passed): {e}")
 
     return state

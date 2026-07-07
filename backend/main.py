@@ -25,7 +25,9 @@ from backend.utils.file_manager import (
     save_metadata,
     list_previous_runs,
     read_file,
-    save_site_text
+    save_site_text,
+    AUDITS_DIR,
+    REDESIGNS_DIR
 )
 
 
@@ -45,16 +47,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve outputs folder as static files (for screenshots etc)
+# Serve outputs & frontend as static files (local only — Vercel serves these via CDN)
 import os
 from backend.utils.file_manager import BASE_OUTPUT_DIR
-outputs_dir = str(BASE_OUTPUT_DIR)
-os.makedirs(outputs_dir, exist_ok=True)
-app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
 
-# Serve frontend folder
 frontend_dir = str(Path(__file__).resolve().parent.parent / "frontend")
-app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
+if not os.getenv("VERCEL"):
+    outputs_dir = str(BASE_OUTPUT_DIR)
+    os.makedirs(outputs_dir, exist_ok=True)
+    app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
+    app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
 
 
 # ── Request/Response models ─────────────────────────────────────────────────
@@ -80,28 +84,28 @@ class AuditRequest(BaseModel):
 #     error: str
 
 class AuditResponse(BaseModel):
-    success: bool
-    url: str
-    slug: str
-    audit: str
-    generated_prompt: str
-    html_code: str
-    eval_score: float
-    eval_score_cta: int
-    eval_score_hierarchy: int
-    eval_score_sections: int
-    eval_score_trust: int
-    eval_score_mobile: int
-    eval_passed: bool
-    eval_hard_fail: bool
-    eval_hard_fail_reason: str
-    eval_issues: str
-    iterations: int
-    audit_file_path: str
-    redesign_file_path: str
-    screenshot_path: str
-    status: str
-    error: str
+    success: bool = True
+    url: str = ""
+    slug: str = ""
+    audit: str = ""          # kept for backward compat — not used in response path
+    generated_prompt: str = ""
+    html_code: str = ""      # kept for backward compat — not used in response path
+    eval_score: float = 0.0
+    eval_score_cta: int = 0
+    eval_score_hierarchy: int = 0
+    eval_score_sections: int = 0
+    eval_score_trust: int = 0
+    eval_score_mobile: int = 0
+    eval_passed: bool = False
+    eval_hard_fail: bool = False
+    eval_hard_fail_reason: str = ""
+    eval_issues: str = ""
+    iterations: int = 0
+    audit_file_path: str = ""
+    redesign_file_path: str = ""
+    screenshot_path: str = ""
+    status: str = ""
+    error: str = ""
 
 
 # ── Build workflow once at startup ──────────────────────────────────────────
@@ -230,13 +234,16 @@ async def run_audit(request: AuditRequest):
         # )
 
 
+        # Return lightweight response — html_code and audit are fetched separately
+        # via GET /history/{slug} to avoid sending a 200KB JSON payload that browsers
+        # may fail to parse ("Unexpected end of JSON input")
         return AuditResponse(
             success=True,
             url=url,
             slug=slug,
-            audit=final_state["audit"],
-            generated_prompt=final_state.get("generated_prompt", ""),
-            html_code=final_state["html_code"],
+            audit="",              # fetched via /history/{slug}
+            generated_prompt="",   # fetched via /history/{slug}
+            html_code="",          # fetched via /history/{slug}
             eval_score=final_state["eval_score"],
             eval_score_cta=final_state.get("eval_score_cta", 0),
             eval_score_hierarchy=final_state.get("eval_score_hierarchy", 0),
@@ -245,8 +252,8 @@ async def run_audit(request: AuditRequest):
             eval_score_mobile=final_state.get("eval_score_mobile", 0),
             eval_passed=final_state["eval_passed"],
             eval_hard_fail=final_state.get("eval_hard_fail", False),
-            eval_hard_fail_reason=final_state.get("eval_hard_fail_reason", "None"),
-            eval_issues=final_state["eval_issues"],
+            eval_hard_fail_reason=final_state.get("eval_hard_fail_reason", ""),
+            eval_issues=final_state.get("eval_issues", ""),
             iterations=final_state["iteration"],
             audit_file_path=audit_path,
             redesign_file_path=redesign_path,
@@ -273,12 +280,12 @@ async def get_history():
 @app.get("/history/{slug}")
 async def get_run_by_slug(slug: str):
     """Return audit and HTML for a specific previous run"""
-    audit_files = list(Path("outputs/audits").glob(f"{slug}*"))
+    audit_files = list(AUDITS_DIR.glob(f"{slug}*"))
 
     # Derive the domain folder (strip _YYYYMMDD_HHMMSS suffix)
     parts = slug.split("_")
     domain_folder = "_".join(parts[:-2]) if len(parts) >= 3 else slug
-    redesign_index = Path("outputs/redesigns") / domain_folder / "index.html"
+    redesign_index = REDESIGNS_DIR / domain_folder / "index.html"
 
     if not audit_files and not redesign_index.exists():
         raise HTTPException(status_code=404, detail="Run not found")
@@ -299,7 +306,7 @@ async def get_run_by_slug(slug: str):
 @app.get("/download/audit/{slug}")
 async def download_audit(slug: str):
     """Download audit .txt file"""
-    files = list(Path("outputs/audits").glob(f"{slug}*"))
+    files = list(AUDITS_DIR.glob(f"{slug}*"))
     if not files:
         raise HTTPException(status_code=404, detail="Audit file not found")
     return FileResponse(
@@ -314,7 +321,7 @@ async def download_redesign(slug: str):
     """Download redesign index.html from the domain folder"""
     parts = slug.split("_")
     domain_folder = "_".join(parts[:-2]) if len(parts) >= 3 else slug
-    filepath = Path("outputs/redesigns") / domain_folder / "index.html"
+    filepath = REDESIGNS_DIR / domain_folder / "index.html"
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Redesign file not found")
     return FileResponse(

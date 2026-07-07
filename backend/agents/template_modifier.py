@@ -243,13 +243,31 @@ def fill_remaining_placeholders(html: str) -> str:
 
 def parse_filler_json(response: str) -> dict:
     """Extract JSON from model response safely, falling back to robust regex parsing if needed."""
-    # Direct parse
+
+    # Strip <think>...</think> tags produced by reasoning models (e.g. qwen3)
+    cleaned = re.sub(r'<think>[\s\S]*?</think>', '', response, flags=re.DOTALL).strip()
+
+    # Direct parse on cleaned response
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        pass
+
+    # Try direct parse on raw response (in case tags stripped too much)
     try:
         return json.loads(response.strip())
     except Exception:
         pass
 
-    # Extract JSON block and try to load it
+    # Extract JSON block from cleaned response
+    try:
+        match = re.search(r'\{[\s\S]*\}', cleaned, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+    except Exception:
+        pass
+
+    # Extract JSON block from raw response
     try:
         match = re.search(r'\{[\s\S]*\}', response, re.DOTALL)
         if match:
@@ -261,7 +279,6 @@ def parse_filler_json(response: str) -> dict:
     try:
         parsed = {}
         # Find all patterns like "KEY" : "VALUE" (handling escaped quotes and newlines within values)
-        # Matches uppercase keys and their string values
         matches = re.findall(r'"([A-Z_0-9]+)"\s*:\s*"((?:[^"\\]|\\.)*)"', response)
         for k, v in matches:
             # Unescape quotes/slashes
@@ -274,6 +291,7 @@ def parse_filler_json(response: str) -> dict:
 
     print("[TEMPLATE MODIFIER] JSON parse failed — using defaults only")
     return {}
+
 
 
 def run_template_modifier(
