@@ -4,7 +4,6 @@ import re
 import sys
 from pathlib import Path
 from datetime import datetime
-from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from slugify import slugify
 
@@ -19,7 +18,11 @@ if sys.platform == "win32":
 
 
 # ── Output folder for screenshots ──────────────────────────────────────────
-SCREENSHOTS_DIR = Path("outputs/screenshots")
+import os
+if os.getenv("VERCEL"):
+    SCREENSHOTS_DIR = Path("/tmp/outputs/screenshots")
+else:
+    SCREENSHOTS_DIR = Path("outputs/screenshots")
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -67,49 +70,131 @@ async def scrape_website(url: str) -> dict:
         "cta_texts": [],
         "images_alt": [],
         "raw_text": "",
+        "detected_primary": "#1a237e",
+        "all_colors": [],
         "scrape_success": False,
         "error": None
     }
 
     try:
-        async with async_playwright() as p:
+        try:
+            from playwright.async_api import async_playwright
+            async with async_playwright() as p:
 
-            print("[SCRAPER] Launching Chromium browser...")
-            browser = await p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox"]
-            )
-
-            context = await browser.new_context(
-                viewport={"width": 1440, "height": 900},
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/120.0.0.0 Safari/537.36"
+                print("[SCRAPER] Launching Chromium browser...")
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=["--no-sandbox", "--disable-setuid-sandbox"]
                 )
-            )
 
-            page = await context.new_page()
+                context = await browser.new_context(
+                    viewport={"width": 1440, "height": 900},
+                    user_agent=(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/120.0.0.0 Safari/537.36"
+                    )
+                )
 
-            print(f"[SCRAPER] Navigating to {url} ...")
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                page = await context.new_page()
 
-            # Wait a bit for JS to render
-            await asyncio.sleep(3)
+                print(f"[SCRAPER] Navigating to {url} ...")
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-            # ── Take full-page screenshot ───────────────────────────────
-            print("[SCRAPER] Taking full-page screenshot...")
-            await page.screenshot(
-                path=str(screenshot_path),
-                full_page=True
-            )
-            print(f"[SCRAPER] Screenshot saved: {screenshot_path}")
+                # Wait a bit for JS to render
+                await asyncio.sleep(3)
 
-            # ── Get full HTML content ───────────────────────────────────
-            html_content = await page.content()
-            page_title = await page.title()
+                # ── Take full-page screenshot ───────────────────────────────
+                print("[SCRAPER] Taking full-page screenshot...")
+                await page.screenshot(
+                    path=str(screenshot_path),
+                    full_page=True
+                )
+                print(f"[SCRAPER] Screenshot saved: {screenshot_path}")
 
-            await browser.close()
+                # ── Get full HTML content ───────────────────────────────────
+                html_content = await page.content()
+                page_title = await page.title()
+
+                # ── Extract colors from computed styles ───────────────────────
+                print("[SCRAPER] Extracting computed style colors...")
+                try:
+                    colors_data = await page.evaluate("""() => {
+                        function rgbToHex(rgb) {
+                            if (!rgb) return null;
+                            const matches = rgb.match(/^rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)$/);
+                            if (!matches) {
+                                const rgbaMatches = rgb.match(/^rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),\\s*([\\d.]+)\\)$/);
+                                if (rgbaMatches && parseFloat(rgbaMatches[4]) === 0) return null;
+                                if (rgbaMatches) return "#" + rgbaMatches.slice(1, 4).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+                                return null;
+                            }
+                            return "#" + matches.slice(1, 4).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+                        }
+
+                        const colorStats = {};
+                        const elements = document.querySelectorAll('button, a, h1, h2, header, [class*="nav"], [class*="menu"], [class*="btn"], [class*="button"]');
+                        elements.forEach(el => {
+                            const style = window.getComputedStyle(el);
+                            const bg = rgbToHex(style.backgroundColor);
+                            const fg = rgbToHex(style.color);
+                            
+                            if (bg && bg !== '#ffffff' && bg !== '#000000' && bg !== '#transparent') {
+                                colorStats[bg] = (colorStats[bg] || 0) + 1;
+                            }
+                            if (fg && fg !== '#ffffff' && fg !== '#000000' && fg !== '#333333' && fg !== '#222222' && fg !== '#1a1a2e') {
+                                colorStats[fg] = (colorStats[fg] || 0) + 1;
+                            }
+                        });
+
+                        let primaryHex = '#1a237e';
+                        let maxCount = 0;
+                        for (const [color, count] of Object.entries(colorStats)) {
+                            if (count > maxCount) {
+                                maxCount = count;
+                                primaryHex = color;
+                            }
+                        }
+                        return {
+                            detected_primary: primaryHex,
+                            all_colors: Object.keys(colorStats).slice(0, 5)
+                        };
+                    }""")
+                    scraped_data["detected_primary"] = colors_data.get("detected_primary", "#1a237e")
+                    scraped_data["all_colors"] = colors_data.get("all_colors", [])
+                    print(f"[SCRAPER] Detected primary color: {scraped_data['detected_primary']}, all: {scraped_data['all_colors']}")
+                except Exception as e:
+                    print(f"[SCRAPER] Color extraction failed: {e}")
+
+                await browser.close()
+        except Exception as playwright_err:
+            print(f"[SCRAPER] Playwright launching failed/not installed: {playwright_err}. Falling back to HTTPX/Requests + thum.io...")
+            import httpx
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client:
+                resp = await client.get(url, headers=headers)
+                html_content = resp.text
+                
+            page_title = url
+            title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
+            if title_match:
+                page_title = title_match.group(1).strip()
+                
+            try:
+                print("[SCRAPER] Fetching screenshot from thum.io...")
+                screenshot_url = f"https://image.thum.io/get/width/1280/{url}"
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    s_resp = await client.get(screenshot_url)
+                    if s_resp.status_code == 200:
+                        with open(screenshot_path, "wb") as f:
+                            f.write(s_resp.content)
+                        print(f"[SCRAPER] Screenshot saved from thum.io: {screenshot_path}")
+                    else:
+                        print(f"[SCRAPER] thum.io returned status {s_resp.status_code}")
+            except Exception as se:
+                print(f"[SCRAPER] Failed to fetch screenshot: {se}")
 
         # ── Parse with BeautifulSoup ────────────────────────────────────
         print("[SCRAPER] Parsing HTML with BeautifulSoup...")
@@ -231,7 +316,7 @@ async def scrape_website(url: str) -> dict:
 
         # ── Raw text (full page text dump, capped) ─────────────────────
         raw_text = clean_text(soup.get_text(separator=" "))
-        scraped_data["raw_text"] = raw_text[:5000]  # cap at 5000 chars
+        scraped_data["raw_text"] = raw_text[:10000]  # cap at 10000 chars
 
         scraped_data["scrape_success"] = True
         print(f"[SCRAPER] Scraping complete for {url}")
@@ -256,6 +341,8 @@ def format_scraped_data_for_prompt(data: dict) -> str:
     lines.append(f"PAGE TITLE: {data['meta'].get('title', 'N/A')}")
     lines.append(f"META DESCRIPTION: {data['meta'].get('description', 'N/A')}")
     lines.append(f"META KEYWORDS: {data['meta'].get('keywords', 'N/A')}")
+    lines.append(f"DETECTED PRIMARY COLOR: {data.get('detected_primary', '#1a237e')}")
+    lines.append(f"DETECTED BRAND COLORS: {', '.join(data.get('all_colors', []))}")
     lines.append("")
 
     lines.append("--- HEADINGS ---")
@@ -298,7 +385,7 @@ def format_scraped_data_for_prompt(data: dict) -> str:
     lines.append("")
 
     lines.append("--- RAW PAGE TEXT (excerpt) ---")
-    lines.append(data.get("raw_text", "")[:1500])
+    lines.append(data.get("raw_text", "")[:8000])
 
     return "\n".join(lines)
 

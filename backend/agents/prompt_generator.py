@@ -63,13 +63,13 @@ Create a premium, modern, mobile-first coaching institute website redesign for [
 
 Extract and use:
 - The institute's actual name from the scraped content
-- Their actual courses/programs
+- Their actual courses/programs, exact terminology, and key marketing keywords
 - Their actual location/city
 - Their actual contact details if available
 - Their actual testimonials if available
 - Their actual results/achievements if available
 - Their actual faculty names if available
-- Their actual color scheme or branding colors
+- Their actual color scheme or branding colors (Use the DETECTED PRIMARY COLOR from the scraping metadata. If the main color from the screenshot/site is red, use red; if blue, use blue, etc.)
 
 THE DESIGN MUST FEEL:
 [Write 5-7 specific feeling descriptors based on what this institute needs]
@@ -78,12 +78,15 @@ AVOID:
 [List 3-5 specific things to avoid based on current website problems]
 
 COLOR SCHEME:
-[Specify exact colors based on current branding OR recommend a professional palette]
+[Specify exact colors based on current branding OR recommend a professional palette. Strictly use the detected brand color as Primary]
 Primary: #[hex]
 Secondary: #[hex]  
 Accent: #[hex]
 Text: #[hex]
 Background: #[white or near-white]
+
+CUSTOM CSS / LAYOUT OVERRIDES:
+[Provide 3-5 specific CSS rules to override default layouts, such as custom hero gradients, card shadow effects, customized list markers, or section padding tweaks to make the template look highly personalized, unique, and non-generic]
 
 CURRENT WEBSITE PROBLEMS TO SOLVE:
 [List every problem from the audit in bullet points, be specific]
@@ -216,7 +219,7 @@ def run_prompt_generator(
     # Build the input prompt
     input_prompt = build_prompt_generator_input(
         url=url,
-        website_data=website_data,
+        website_data=website_data[:10000],
         audit=audit,
         screenshot_base64=screenshot_base64
     )

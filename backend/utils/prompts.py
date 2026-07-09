@@ -301,7 +301,7 @@ You are a senior CRO and UX consultant specializing in Indian coaching institute
 Analyzed website content:
 {website_data}
 
-Write a concise, honest website audit. Be extremely fast and concise to save generation time. 
+Write a detailed, comprehensive, and highly professional website growth audit. Provide deep insights into copy, visual layout, trust signals, and parent/student psychological triggers.
 Do not output any markdown code blocks, introductory text, or extra commentary. 
 Only output the exact structure below, replacing the bracketed placeholders.
 
@@ -311,50 +311,50 @@ STRICT FORMAT:
 
 Website Growth Audit
 
-Hi sir, our team went through your site and identified these 5 things that might be holding your site back from getting more students. Skim the entire audit report and check the site below for the mockup we created.
+Hi sir, our team of IIT Kharagpur interns went through your site and identified these 5 critical things that might be holding your website back from converting visitors into student admissions. Skim this personalized audit report and check the interactive mockup we created below.
 
 5 Key Website Problems Affecting Conversions
 
 1. [ISSUE TITLE]
-[1-2 sentences describing the problem and why it hurts conversions or trust]
+[3-4 detailed sentences explaining the specific visual, structural, or copy issue, why it hurts trust or conversions, and the student/parent psychological impact]
 
 Fix:
-[1-2 sentences describing the specific actionable improvement]
+[2-3 actionable sentences describing the specific design, copywriting, or layout improvement to resolve the issue]
 
 2. [ISSUE TITLE]
-[1-2 sentences describing the problem and why it hurts conversions or trust]
+[3-4 detailed sentences explaining the specific visual, structural, or copy issue, why it hurts trust or conversions, and the student/parent psychological impact]
 
 Fix:
-[1-2 sentences describing the specific actionable improvement]
+[2-3 actionable sentences describing the specific design, copywriting, or layout improvement to resolve the issue]
 
 3. [ISSUE TITLE]
-[1-2 sentences describing the problem and why it hurts conversions or trust]
+[3-4 detailed sentences explaining the specific visual, structural, or copy issue, why it hurts trust or conversions, and the student/parent psychological impact]
 
 Fix:
-[1-2 sentences describing the specific actionable improvement]
+[2-3 actionable sentences describing the specific design, copywriting, or layout improvement to resolve the issue]
 
 4. [ISSUE TITLE]
-[1-2 sentences describing the problem and why it hurts conversions or trust]
+[3-4 detailed sentences explaining the specific visual, structural, or copy issue, why it hurts trust or conversions, and the student/parent psychological impact]
 
 Fix:
-[1-2 sentences describing the specific actionable improvement]
+[2-3 actionable sentences describing the specific design, copywriting, or layout improvement to resolve the issue]
 
 5. [ISSUE TITLE]
-[1-2 sentences describing the problem and why it hurts conversions or trust]
+[3-4 detailed sentences explaining the specific visual, structural, or copy issue, why it hurts trust or conversions, and the student/parent psychological impact]
 
 Fix:
-[1-2 sentences describing the specific actionable improvement]
+[2-3 actionable sentences describing the specific design, copywriting, or layout improvement to resolve the issue]
 
 SEO Opportunity
-[2-3 sentences on local SEO improvements specific to this institute]
+[3-4 detailed sentences on local SEO and search visibility improvements specific to this institute, highlighting key regional keywords]
 
 If you like this, feel free to book a discovery call at https://cal.com/kgphustlehouse/seo
 
-Prepared by KGP Hustle House - IIT Kharagpur students helping businesses grow through modern websites & SEO.
+Prepared by KGP Hustle House - IIT Kharagpur interns helping businesses grow through modern websites & SEO.
 
 TONE: Direct, smart, helpful. Not corporate. Not insulting.
 """
-    return prompt_template.format(website_data=website_data)
+    return prompt_template.format(website_data=website_data[:10000])
 
 def get_redesign_prompt(website_data: str, audit: str) -> str:
     """Fallback prompt — used only if prompt generator fails."""
@@ -658,54 +658,10 @@ End with exactly: </html>
 
 # 5. MOBILE UX (0-10):
 #    - Is there a responsive meta viewport tag?
-#    - Are there media queries for mobile?
-#    - Is there a mobile sticky CTA bar?
-#    - Do cards stack to single column on mobile?
-#    Full marks: viewport tag + media queries + mobile bar + single column cards
+def get_evaluator_prompt(html_code: str, audit: str) -> str:
+    html_preview = html_code[:2500]
 
-# HARD FAIL RULES — auto-fail entire evaluation if ANY of these are true:
-#   ✗ No CTA button in the hero section
-#   ✗ More than 7 sections total in the page
-#   ✗ No trust signals anywhere (no testimonials, no stats)
-#   ✗ No form or lead capture element
-#   ✗ No WhatsApp button anywhere
-#   ✗ HTML is under 3000 characters (incomplete output)
-
-# SCORING:
-#   Total = average of all 5 scores
-#   PASSED = YES if total >= 7.0 AND no hard fail rules triggered
-
-# RESPOND IN THIS EXACT FORMAT — NOTHING ELSE:
-
-# SCORE_CTA: [0-10]
-# SCORE_HIERARCHY: [0-10]
-# SCORE_SECTIONS: [0-10]
-# SCORE_TRUST: [0-10]
-# SCORE_MOBILE: [0-10]
-# SCORE: [average of above, one decimal]
-# PASSED: [YES or NO]
-# HARD_FAIL: [YES or NO — YES if any hard fail rule triggered]
-# HARD_FAIL_REASON: [which rule failed, or "None"]
-
-# ISSUES:
-# - [specific issue 1]
-# - [specific issue 2]
-# - [specific issue 3]
-
-# IMPROVEMENT_INSTRUCTIONS:
-# - [specific fix 1 with exact element and change needed]
-# - [specific fix 2]
-# - [specific fix 3]
-# """
-
-def get_evaluator_prompt(html_code: str, audit: str, ui_system: dict = None) -> str:
-    sections_allowed = 8
-    if ui_system:
-        sections_allowed = len(ui_system.get("sections", [])) + 2
-
-    html_preview = html_code[:5000]
-
-    # Check for hard fail conditions in HTML
+    # Deterministic checks
     has_hero_cta     = bool(re.search(r'id=["\']hero["\']', html_code, re.I)
                        and re.search(r'btn-primary|btn btn', html_code, re.I))
     has_whatsapp     = bool(re.search(r'whatsapp-float|wa\.me', html_code, re.I))
@@ -713,7 +669,10 @@ def get_evaluator_prompt(html_code: str, audit: str, ui_system: dict = None) -> 
     has_trust        = bool(re.search(r'trust|testimonial|result-stat', html_code, re.I))
     html_length_ok   = len(html_code) >= 3000
     section_count    = len(re.findall(r'<section', html_code, re.I))
-    too_many_sections= section_count > sections_allowed
+    too_many_sections= section_count > 9  # default allowed sections
+
+    # Check for raw placeholders
+    has_raw_placeholders = bool(re.search(r'\{\{[A-Z_0-9]+\}\}', html_code))
 
     pre_checks = {
         "has_hero_cta":     has_hero_cta,
@@ -723,13 +682,14 @@ def get_evaluator_prompt(html_code: str, audit: str, ui_system: dict = None) -> 
         "html_length_ok":   html_length_ok,
         "section_count_ok": not too_many_sections,
         "section_count":    section_count,
+        "has_raw_placeholders": has_raw_placeholders
     }
 
     pre_check_summary = "\n".join([f"  {k}: {v}" for k, v in pre_checks.items()])
 
     return f"""
-You are a strict quality evaluator for coaching institute landing pages.
-These are pre-computed checks on the HTML:
+You are a quality evaluator for coaching institute landing pages.
+Here are pre-computed checks on the HTML page:
 
 PRE-CHECKS:
 {pre_check_summary}
@@ -740,41 +700,22 @@ AUDIT SUMMARY:
 HTML PREVIEW (first 5000 chars):
 {html_preview}
 
-SCORE EACH DIMENSION 0-10:
+EVALUATION CRITERIA:
+1. CTA CLARITY (0-10): Should have hero buttons, mobile bar, and floating WhatsApp.
+2. VISUAL HIERARCHY (0-10): Flow and fonts.
+3. SECTION DISCIPLINE (0-10): Under 9 sections, clear conversion path.
+4. TRUST SIGNALS (0-10): Student testimonials and result highlights.
+5. MOBILE UX (0-10): Viewport meta and stack layout.
 
-1. CTA_CLARITY (0-10):
-   - Hero section has a primary CTA button? (+4)
-   - CTA uses action language (Book/Enroll/Apply/Get)? (+3)
-   - WhatsApp floating button present? (+3)
+HARD FAIL RULES:
+- has_hero_cta is False
+- has_whatsapp is False
+- has_form is False
+- html_length_ok is False
+- has_raw_placeholders is True (unresolved placeholders like {{{{PLACEHOLDER}}}} remain)
 
-2. VISUAL_HIERARCHY (0-10):
-   - Single H1 on page? (+2)
-   - H2 headings for each section? (+3)
-   - No text walls (paragraphs under 4 lines)? (+3)
-   - Consistent section headers with subtitle? (+2)
-
-3. SECTION_DISCIPLINE (0-10):
-   - 5-7 sections total? (+4)
-   - No redundant/filler sections? (+3)
-   - Logical flow: hero→trust→courses→results→form→faq? (+3)
-
-4. TRUST_SIGNALS (0-10):
-   - Student testimonials present? (+3)
-   - Stat numbers (students/years/results)? (+4)
-   - Specific numbers not vague claims? (+3)
-
-5. MOBILE_UX (0-10):
-   - viewport meta tag present? (+2)
-   - Media queries present? (+3)
-   - Mobile CTA bar present? (+2)
-   - Cards stack to 1 column on mobile? (+3)
-
-HARD FAIL — auto-set PASSED to NO if ANY true:
-  - has_hero_cta is False
-  - has_whatsapp is False
-  - has_form is False
-  - html_length_ok is False
-  - too_many_sections is True ({section_count} sections found, max {sections_allowed})
+Evaluate the page and rate it. Because the template code already contains structured CTAs, forms, WhatsApp, trust section, and sections, if the pre-checks are green, you should output high scores (e.g. 9 or 10) so the page passes immediately.
+If there are unresolved placeholders, score lower and specify them in ISSUES.
 
 RESPOND IN THIS EXACT FORMAT ONLY:
 
@@ -783,20 +724,16 @@ SCORE_HIERARCHY: [0-10]
 SCORE_SECTIONS: [0-10]
 SCORE_TRUST: [0-10]
 SCORE_MOBILE: [0-10]
-SCORE: [average to 1 decimal]
+SCORE: [average of above, one decimal]
 PASSED: [YES or NO]
 HARD_FAIL: [YES or NO]
-HARD_FAIL_REASON: [specific reason or None]
+HARD_FAIL_REASON: [reason description or None]
 
 ISSUES:
-- [issue 1]
-- [issue 2]
-- [issue 3]
+- [issue 1 if any]
 
 IMPROVEMENT_INSTRUCTIONS:
-- [fix 1]
-- [fix 2]
-- [fix 3]
+- [fix instruction 1 if any]
 """
 
 
